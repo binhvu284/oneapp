@@ -1,0 +1,81 @@
+.settings {
+  width: 100%;
+}
+
+.settings h1 {
+  font-size: var(--font-size-3xl);
+  margin-bottom: var(--spacing-xl);
+  color: var(--text-primary);
+}
+
+.settingsGrid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
+}
+
+.settingSection {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+}
+
+.settingSection h2 {
+  font-size: var(--font-size-xl);
+  margin-bottom: var(--spacing-lg);
+  color: var(--text-primary);
+}
+
+.settingItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md) 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.settingItem:last-child {
+  border-bottom: none;
+}
+
+.settingItem label {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.settingItem span {
+  color: var(--text-secondary);
+}
+
+.themeToggle {
+  padding: var(--spacing-sm) var(--spacing-md);
+  background-color: var(--accent-primary);
+  color: var(--text-primary);
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+.themeToggle:hover {
+  background-color: var(--accent-hover);
+}
+
+.signOutButton {
+  padding: var(--spacing-sm) var(--spacing-md);
+  background-color: var(--error);
+  color: var(--text-primary);
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+.signOutButton:hover {
+  background-color: #dc2626;
+}
+
+.settingItem p {
+  color: var(--text-secondary);
+  margin: var(--spacing-xs) 0;
+}
+

@@ -1,0 +1,28 @@
+---
+name: Feature Request
+about: Suggest an idea for OneApp
+title: '[FEATURE] '
+labels: enhancement
+assignees: ''
+---
+
+## Feature Description
+
+<!-- A clear and concise description of the feature -->
+
+## Motivation
+
+<!-- Why is this feature needed? What problem does it solve? -->
+
+## Proposed Solution
+
+<!-- How would you like to see this implemented? -->
+
+## Alternatives Considered
+
+<!-- Any alternative solutions or features you've considered -->
+
+## Additional Context
+
+<!-- Add any other context, mockups, or examples -->
+
