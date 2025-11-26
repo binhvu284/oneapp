@@ -1,4 +1,4 @@
-import { NavLink, useLocation } from 'react-router-dom'
+import { NavLink } from 'react-router-dom'
 import { IconDashboard, IconAI, IconModules, IconSettings, IconChevronLeft, IconChevronRight } from '../Icons'
 import styles from './Sidebar.module.css'
 
@@ -17,7 +17,6 @@ const navigation = [
 ]
 
 export function Sidebar({ collapsed, onToggle, onNavigate, onMobileClose }: SidebarProps) {
-  const location = useLocation()
 
   const handleToggleClick = () => {
     // On mobile, close the sidebar

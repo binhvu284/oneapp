@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import styles from './Settings.module.css'
 
 export function Settings() {
-  const { theme, toggleTheme, setTheme } = useTheme()
+  const { theme, setTheme } = useTheme()
   const { user, signOut } = useAuth()
 
   return (

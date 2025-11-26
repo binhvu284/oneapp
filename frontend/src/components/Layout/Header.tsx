@@ -13,8 +13,6 @@ interface HeaderProps {
 
 export function Header({ title, mobileMenuOpen, onMobileMenuToggle }: HeaderProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false)
-  const [profileOpen, setProfileOpen] = useState(false)
-  const [settingOpen, setSettingOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement | null>(null)
   const location = useLocation()
   const navigate = useNavigate()
@@ -96,7 +94,7 @@ export function Header({ title, mobileMenuOpen, onMobileMenuToggle }: HeaderProp
               className={styles.dropdownItem}
               onClick={() => {
                 setDropdownOpen(false)
-                setProfileOpen(true)
+                // TODO: Open profile modal
               }}
             >
               <IconUser style={{ marginRight: 8 }} />
@@ -106,7 +104,6 @@ export function Header({ title, mobileMenuOpen, onMobileMenuToggle }: HeaderProp
               className={styles.dropdownItem}
               onClick={() => {
                 setDropdownOpen(false)
-                setSettingOpen(true)
                 navigate('/settings')
               }}
             >

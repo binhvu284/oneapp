@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { createClient, SupabaseClient } from '@supabase/supabase-js'
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { createClient, SupabaseClient, Session } from '@supabase/supabase-js'
 
 interface User {
   id: string
@@ -39,7 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     // Check active session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session } }: { data: { session: Session | null } }) => {
       setUser(session?.user ? { id: session.user.id, email: session.user.email } : null)
       setLoading(false)
     }).catch(() => {
@@ -49,7 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((_event: string, session: Session | null) => {
       setUser(session?.user ? { id: session.user.id, email: session.user.email } : null)
       setLoading(false)
     })
