@@ -1,121 +1,250 @@
+/* OneApp Global Styles */
+/* Theme-flexible design system with CSS variables */
+
+/* ===== CSS VARIABLES - THEME SYSTEM ===== */
 :root {
-  /* Color Palette - Dark Theme (Default) */
-  --bg-primary: #0a0a0a;
-  --bg-secondary: #1a1a1a;
-  --bg-tertiary: #2a2a2a;
-  --text-primary: #ffffff;
-  --text-secondary: #b0b0b0;
-  --text-tertiary: #808080;
-  --accent-primary: #3b82f6;
-  --accent-secondary: #8b5cf6;
-  --accent-hover: #2563eb;
-  --border-color: #333333;
+  /* Background Colors */
+  --bg: #f6f8fb;
+  --panel: #ffffff;
+  --bg-secondary: #f9fafb;
+
+  /* Text Colors */
+  --text: #101828;
+  --text-primary: #101828;
+  --muted: #475467;
+
+  /* Primary Colors */
+  --primary: #2563eb;
+  --primary-dark: #1d4ed8;
+  --primary-700: #1d4ed8;
+  --primary-light: #dbeafe;
+
+  /* Semantic Colors */
   --success: #10b981;
-  --error: #ef4444;
+  --success-light: #d1fae5;
+  --danger: #ef4444;
+  --danger-dark: #dc2626;
+  --danger-light: #fef2f2;
   --warning: #f59e0b;
+  --warning-light: #fef3c7;
   --info: #3b82f6;
+  --info-light: #dbeafe;
 
-  /* Spacing */
-  --spacing-xs: 4px;
-  --spacing-sm: 8px;
-  --spacing-md: 16px;
-  --spacing-lg: 24px;
-  --spacing-xl: 32px;
-  --spacing-2xl: 48px;
+  /* Borders & Dividers */
+  --border: #e5e7eb;
+  --border-light: #f3f4f6;
 
-  /* Typography */
-  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  --font-size-xs: 12px;
-  --font-size-sm: 14px;
-  --font-size-md: 16px;
-  --font-size-lg: 18px;
-  --font-size-xl: 20px;
-  --font-size-2xl: 24px;
-  --font-size-3xl: 32px;
-
-  /* Border Radius */
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
+  /* Z-Index System */
+  --z-base: 1;
+  --z-content: 10;
+  --z-card: 20;
+  --z-button: 30;
+  --z-dropdown: 100;
+  --z-dropdown-active: 1000;
+  --z-tooltip: 120;
+  --z-popover: 130;
+  --z-header: 200;
+  --z-sidebar: 300;
+  --z-mobile-menu: 400;
+  --z-modal-backdrop: 99999;
+  --z-modal: 99999;
+  --z-modal-content: 99999;
+  --z-notification: 2000;
+  --z-loading: 3000;
 }
 
-[data-theme='light'] {
-  --bg-primary: #ffffff;
-  --bg-secondary: #f5f5f5;
-  --bg-tertiary: #e5e5e5;
-  --text-primary: #0a0a0a;
-  --text-secondary: #404040;
-  --text-tertiary: #808080;
-  --border-color: #d0d0d0;
+/* Dark Theme */
+[data-theme='dark'] {
+  --bg: #0a0a0a;
+  --panel: #1a1a1a;
+  --bg-secondary: #2a2a2a;
+  --text: #ffffff;
+  --text-primary: #ffffff;
+  --muted: #b0b0b0;
+  --primary: #3b82f6;
+  --primary-dark: #2563eb;
+  --primary-700: #2563eb;
+  --primary-light: #1e3a8a;
+  --success: #10b981;
+  --success-light: #064e3b;
+  --danger: #ef4444;
+  --danger-dark: #dc2626;
+  --danger-light: #7f1d1d;
+  --warning: #f59e0b;
+  --warning-light: #78350f;
+  --info: #3b82f6;
+  --info-light: #1e3a8a;
+  --border: #333333;
+  --border-light: #2a2a2a;
 }
 
+/* ===== BASE STYLES ===== */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
+html,
+body,
+#root {
+  height: 100%;
+  overflow: hidden;
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji',
+    'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+}
+
 body {
-  font-family: var(--font-family);
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
-  line-height: 1.6;
+  background: radial-gradient(1200px 900px at 80% -10%, rgba(59, 130, 246, 0.1) 0%, transparent 45%),
+    radial-gradient(1000px 700px at -10% 20%, rgba(147, 197, 253, 0.1) 0%, transparent 50%),
+    var(--bg);
+  color: var(--text);
+  margin: 0;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-#root {
+/* Allow scrolling on auth pages */
+body.auth-page,
+html.auth-page,
+#root.auth-page {
+  overflow: auto !important;
+  height: auto !important;
   min-height: 100vh;
-  width: 100%;
 }
 
-/* Scrollbar Styling */
+/* ===== SCROLLBAR STYLING ===== */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--bg-secondary);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--bg-tertiary);
-  border-radius: var(--radius-sm);
+  background: var(--border);
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--text-tertiary);
+  background: var(--muted);
 }
 
-/* Focus Styles */
+/* ===== FOCUS STYLES ===== */
 *:focus-visible {
-  outline: 2px solid var(--accent-primary);
+  outline: 2px solid var(--primary);
   outline-offset: 2px;
+  border-radius: 4px;
 }
 
-/* Button Reset */
+/* ===== BUTTON RESET ===== */
 button {
   font-family: inherit;
   cursor: pointer;
   border: none;
   background: none;
+  color: inherit;
 }
 
-/* Link Reset */
+/* ===== LINK RESET ===== */
 a {
   color: inherit;
   text-decoration: none;
 }
 
-/* Input Reset */
+/* ===== INPUT RESET ===== */
 input,
 textarea,
 select {
   font-family: inherit;
   font-size: inherit;
+  color: inherit;
 }
 
+/* ===== SMOOTH TRANSITIONS ===== */
+* {
+  transition-property: background-color, border-color, color, fill, stroke,
+    opacity, box-shadow, transform;
+  transition-timing-function: ease;
+  transition-duration: 0.2s;
+}
+
+/* Disable transitions for reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* ===== UTILITY CLASSES ===== */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* ===== ANIMATIONS ===== */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ===== RESPONSIVE BREAKPOINTS ===== */
+@media (max-width: 768px) {
+  /* Mobile styles */
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  /* Tablet styles */
+}
+
+@media (min-width: 1025px) {
+  /* Desktop styles */
+}

@@ -1,38 +1,56 @@
 .settings {
   width: 100%;
+  animation: fadeIn 0.3s ease;
 }
 
-.settings h1 {
-  font-size: var(--font-size-3xl);
-  margin-bottom: var(--spacing-xl);
-  color: var(--text-primary);
+.header {
+  margin-bottom: 24px;
+}
+
+.title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.subtitle {
+  font-size: 1rem;
+  color: var(--muted);
+  margin: 0;
 }
 
 .settingsGrid {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xl);
+  gap: 20px;
 }
 
 .settingSection {
-  background-color: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-lg);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.2s ease;
+}
+
+.settingSection:hover {
+  box-shadow: 0 4px 12px rgba(2, 8, 23, 0.05);
 }
 
 .settingSection h2 {
-  font-size: var(--font-size-xl);
-  margin-bottom: var(--spacing-lg);
-  color: var(--text-primary);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 16px;
 }
 
 .settingItem {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--spacing-md) 0;
-  border-bottom: 1px solid var(--border-color);
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .settingItem:last-child {
@@ -41,41 +59,69 @@
 
 .settingItem label {
   font-weight: 500;
-  color: var(--text-primary);
+  color: var(--text);
+  font-size: 0.9rem;
 }
 
 .settingItem span {
-  color: var(--text-secondary);
+  color: var(--muted);
+  font-size: 0.9rem;
 }
 
-.themeToggle {
-  padding: var(--spacing-sm) var(--spacing-md);
-  background-color: var(--accent-primary);
-  color: var(--text-primary);
-  border-radius: var(--radius-md);
+.themeOptions {
+  display: flex;
+  gap: 8px;
+}
+
+.themeButton {
+  padding: 8px 16px;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
   font-weight: 500;
-  transition: background-color 0.2s ease;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
 }
 
-.themeToggle:hover {
-  background-color: var(--accent-hover);
+.themeButton:hover {
+  background: rgba(0, 0, 0, 0.06);
+  border-color: var(--primary);
+}
+
+.themeButton.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
 }
 
 .signOutButton {
-  padding: var(--spacing-sm) var(--spacing-md);
-  background-color: var(--error);
-  color: var(--text-primary);
-  border-radius: var(--radius-md);
+  padding: 8px 16px;
+  background: var(--danger);
+  color: white;
+  border: 1px solid var(--danger);
+  border-radius: 8px;
   font-weight: 500;
-  transition: background-color 0.2s ease;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
 }
 
 .signOutButton:hover {
-  background-color: #dc2626;
+  background: var(--danger-dark);
+  border-color: var(--danger-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+}
+
+.signOutButton:active {
+  transform: translateY(0);
 }
 
 .settingItem p {
-  color: var(--text-secondary);
-  margin: var(--spacing-xs) 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin: 4px 0;
 }
 

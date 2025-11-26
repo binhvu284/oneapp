@@ -5,29 +5,45 @@ type Theme = 'dark' | 'light'
 interface ThemeContextType {
   theme: Theme
   toggleTheme: () => void
+  setTheme: (theme: Theme) => void
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>(() => {
-    // Check localStorage or default to dark
-    const savedTheme = localStorage.getItem('theme') as Theme
-    return savedTheme || 'dark'
+  const [theme, setThemeState] = useState<Theme>(() => {
+    // Check localStorage or default to light (matching Nobleco)
+    try {
+      if (typeof window !== 'undefined') {
+        const savedTheme = localStorage.getItem('oneapp_theme') as Theme
+        return savedTheme || 'light'
+      }
+    } catch {
+      // Ignore errors
+    }
+    return 'light'
   })
 
   useEffect(() => {
     // Apply theme to document
     document.documentElement.setAttribute('data-theme', theme)
-    localStorage.setItem('theme', theme)
+    try {
+      localStorage.setItem('oneapp_theme', theme)
+    } catch {
+      // Ignore errors
+    }
   }, [theme])
 
   const toggleTheme = () => {
-    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))
+    setThemeState((prev) => (prev === 'dark' ? 'light' : 'dark'))
+  }
+
+  const setTheme = (newTheme: Theme) => {
+    setThemeState(newTheme)
   }
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
       {children}
     </ThemeContext.Provider>
   )

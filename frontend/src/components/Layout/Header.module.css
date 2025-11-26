@@ -1,51 +1,206 @@
+/* Header Container */
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--spacing-lg);
-  background-color: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-color);
+  padding: 10px 16px;
+  height: fit-content;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(2, 8, 23, 0.06);
+  position: relative;
+  z-index: var(--z-header);
+  transition: all 0.2s ease;
 }
 
-.left h2 {
-  font-size: var(--font-size-xl);
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.right {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-}
-
-.themeButton {
-  padding: var(--spacing-sm);
-  font-size: var(--font-size-lg);
-  background-color: var(--bg-tertiary);
-  border-radius: var(--radius-md);
-  transition: background-color 0.2s ease;
-}
-
-.themeButton:hover {
-  background-color: var(--bg-primary);
-}
-
-.user {
-  display: flex;
-  align-items: center;
-}
-
-.avatar {
+/* Mobile Toggle Button */
+.mobileToggle {
   width: 40px;
   height: 40px;
-  border-radius: 50%;
-  background-color: var(--accent-primary);
-  color: var(--text-primary);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  cursor: pointer;
+  padding: 0;
+  margin-right: 12px;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.mobileToggle:hover {
+  background: rgba(0, 0, 0, 0.06);
+  border-color: var(--primary);
+}
+
+.mobileToggle:active {
+  transform: scale(0.95);
+}
+
+/* Page Title */
+.pageTitle {
+  display: flex;
+  align-items: center;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--text);
+  flex: 1;
+}
+
+.pageTitle svg {
+  color: var(--primary);
+}
+
+.pageTitle span {
+  margin-left: 4px;
+}
+
+/* Actions Container */
+.actions {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: var(--z-dropdown);
+}
+
+/* User Button */
+.userButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.userButton:hover {
+  background: rgba(0, 0, 0, 0.06);
+  border-color: var(--primary);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.userButton:active {
+  transform: translateY(0);
+}
+
+/* Avatar */
+.avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
   display: flex;
   align-items: center;
   justify-content: center;
+  color: white;
+  font-size: 11px;
   font-weight: 600;
-  font-size: var(--font-size-md);
+  text-transform: uppercase;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
 }
 
+.userButton:hover .avatar {
+  transform: scale(1.1);
+}
+
+/* User Name */
+.userName {
+  font-weight: 500;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+}
+
+/* Dropdown Menu */
+.dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4px 0;
+  min-width: 160px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: var(--z-dropdown-active);
+  overflow: hidden;
+  animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdownItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+  text-decoration: none;
+  padding: 10px 16px;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+.dropdownItem:hover {
+  background: var(--bg);
+}
+
+.dropdownItem svg {
+  width: 16px;
+  height: 16px;
+  color: var(--muted);
+}
+
+.dropdownItem:hover svg {
+  color: var(--primary);
+}
+
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .mobileToggle {
+    display: flex;
+  }
+
+  .userName {
+    display: none;
+  }
+
+  .userButton {
+    padding: 6px;
+  }
+
+  .pageTitle span {
+    font-size: 1rem;
+  }
+}

@@ -3,20 +3,34 @@ import { useAuth } from '@/contexts/AuthContext'
 import styles from './Settings.module.css'
 
 export function Settings() {
-  const { theme, toggleTheme } = useTheme()
+  const { theme, toggleTheme, setTheme } = useTheme()
   const { user, signOut } = useAuth()
 
   return (
     <div className={styles.settings}>
-      <h1>Settings</h1>
+      <div className={styles.header}>
+        <h1 className={styles.title}>Settings</h1>
+        <p className={styles.subtitle}>Manage your OneApp preferences</p>
+      </div>
       <div className={styles.settingsGrid}>
         <div className={styles.settingSection}>
           <h2>Appearance</h2>
           <div className={styles.settingItem}>
             <label>Theme</label>
-            <button onClick={toggleTheme} className={styles.themeToggle}>
-              Current: {theme === 'dark' ? 'Dark' : 'Light'}
-            </button>
+            <div className={styles.themeOptions}>
+              <button
+                onClick={() => setTheme('light')}
+                className={`${styles.themeButton} ${theme === 'light' ? styles.active : ''}`}
+              >
+                Light
+              </button>
+              <button
+                onClick={() => setTheme('dark')}
+                className={`${styles.themeButton} ${theme === 'dark' ? styles.active : ''}`}
+              >
+                Dark
+              </button>
+            </div>
           </div>
         </div>
 
