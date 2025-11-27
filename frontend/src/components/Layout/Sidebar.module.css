@@ -39,6 +39,29 @@
   padding: 20px 12px;
 }
 
+.logoContent {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.logoImage {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.logoImageCollapsed {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  margin: 0 auto;
+  display: block;
+}
+
 .logoText {
   font-weight: 700;
   font-size: 1.25rem;
@@ -47,8 +70,12 @@
   white-space: nowrap;
 }
 
-.sidebar.collapsed .logoText {
+.sidebar.collapsed .logoContent {
   display: none;
+}
+
+.sidebar.collapsed .logoImageCollapsed {
+  display: block;
 }
 
 /* Toggle Button */

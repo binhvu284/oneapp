@@ -10,8 +10,7 @@ import {
   IconChevronDown,
   IconChevronUp,
   IconInterface,
-  IconSystemAdmin,
-  IconCustomization
+  IconSystemAdmin
 } from '../Icons'
 import styles from './Sidebar.module.css'
 
@@ -86,7 +85,23 @@ export function Sidebar({ collapsed, onToggle, onNavigate, onMobileClose, mobile
   return (
     <aside className={`${styles.sidebar} ${collapsed ? styles.collapsed : ''} ${mobileOpen ? styles.mobileOpen : ''}`}>
       <div className={styles.logo}>
-        {!collapsed && <span className={styles.logoText}>OneApp</span>}
+        {!collapsed && (
+          <div className={styles.logoContent}>
+            <img 
+              src="/icon.png" 
+              alt="OneApp Logo" 
+              className={styles.logoImage}
+            />
+            <span className={styles.logoText}>OneApp</span>
+          </div>
+        )}
+        {collapsed && (
+          <img 
+            src="/icon.png" 
+            alt="OneApp Logo" 
+            className={styles.logoImageCollapsed}
+          />
+        )}
         <button
           className={styles.toggleButton}
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
