@@ -5,15 +5,17 @@
   align-items: center;
   padding: 5px 24px;
   height: fit-content;
-  min-height: 56px;
+  min-height: var(--header-height, 56px);
   background: var(--panel);
   border-bottom: 1px solid var(--border);
   border-radius: 0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
   position: relative;
   z-index: var(--z-header);
-  transition: all 0.2s ease;
+  transition: all 0.2s ease, border-radius 0.3s ease, min-height 0.3s ease;
 }
+
+/* Block style border radius handled via inline styles in Layout.tsx */
 
 /* Mobile Toggle Button */
 .mobileToggle {
@@ -180,9 +182,14 @@
   padding: 4px 0;
   min-width: 160px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  z-index: var(--z-dropdown-active);
+  z-index: calc(var(--z-mobile-menu) + 30);
   overflow: hidden;
   animation: slideDown 0.2s ease;
+}
+
+/* When position is set via inline style (mobile popup), use fixed positioning */
+.dropdown[style*="position: fixed"] {
+  z-index: calc(var(--z-mobile-menu) + 30) !important;
 }
 
 @keyframes slideDown {

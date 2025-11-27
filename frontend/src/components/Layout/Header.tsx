@@ -21,14 +21,30 @@ interface HeaderProps {
   breadcrumbs?: Array<{ label: string; path: string }>
   mobileMenuOpen?: boolean
   onMobileMenuToggle?: (e: React.MouseEvent) => void
+  style?: React.CSSProperties
 }
 
-export function Header({ title, breadcrumbs, mobileMenuOpen, onMobileMenuToggle }: HeaderProps) {
+export function Header({ title, breadcrumbs, mobileMenuOpen, onMobileMenuToggle, style }: HeaderProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [dropdownPosition, setDropdownPosition] = useState<{ top: number; right: number } | null>(null)
   const menuRef = useRef<HTMLDivElement | null>(null)
+  const buttonRef = useRef<HTMLButtonElement | null>(null)
   const location = useLocation()
   const navigate = useNavigate()
   const { user, signOut } = useAuth()
+
+  // Calculate dropdown position when opening in mobile popup
+  useEffect(() => {
+    if (dropdownOpen && mobileMenuOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect()
+      setDropdownPosition({
+        top: rect.bottom + 4,
+        right: window.innerWidth - rect.right
+      })
+    } else {
+      setDropdownPosition(null)
+    }
+  }, [dropdownOpen, mobileMenuOpen])
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -84,7 +100,7 @@ export function Header({ title, breadcrumbs, mobileMenuOpen, onMobileMenuToggle 
   const avatarColor = getAvatarColor(userName)
 
   return (
-    <header className={styles.header}>
+    <header className={styles.header} style={style}>
       {onMobileMenuToggle && (
         <button
           className={styles.mobileToggle}
@@ -119,7 +135,11 @@ export function Header({ title, breadcrumbs, mobileMenuOpen, onMobileMenuToggle 
         )}
       </div>
       <div className={styles.actions} ref={menuRef}>
-        <button className={styles.userButton} onClick={() => setDropdownOpen(!dropdownOpen)}>
+        <button 
+          ref={buttonRef}
+          className={styles.userButton} 
+          onClick={() => setDropdownOpen(!dropdownOpen)}
+        >
           <div
             className={styles.avatar}
             style={{
@@ -131,7 +151,14 @@ export function Header({ title, breadcrumbs, mobileMenuOpen, onMobileMenuToggle 
           <span className={styles.userName}>{userName}</span>
         </button>
         {dropdownOpen && (
-          <div className={styles.dropdown}>
+          <div 
+            className={styles.dropdown}
+            style={dropdownPosition ? { 
+              position: 'fixed', 
+              top: `${dropdownPosition.top}px`, 
+              right: `${dropdownPosition.right}px` 
+            } : undefined}
+          >
             <button
               className={styles.dropdownItem}
               onClick={() => {

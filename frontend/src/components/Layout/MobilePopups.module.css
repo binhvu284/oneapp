@@ -1,0 +1,148 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(16, 24, 40, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: calc(var(--z-mobile-menu) + 5);
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.headerPopup {
+  position: fixed;
+  top: 0;
+  left: 280px;
+  right: 0;
+  height: auto;
+  min-height: 60px;
+  max-height: 200px;
+  z-index: calc(var(--z-mobile-menu) + 7);
+  animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+}
+
+.headerPopup > * {
+  width: 100%;
+  height: 100%;
+}
+
+/* Ensure header connects seamlessly with sidebar - override sidebar border */
+.sidebarPopup .sidebar {
+  border-right: none !important;
+}
+
+.headerPopup .header {
+  border-left: none !important;
+  padding-left: 0 !important;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.sidebarPopup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 280px;
+  max-width: 85vw;
+  z-index: calc(var(--z-mobile-menu) + 6);
+  animation: slideInLeft 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 4px 0 12px rgba(0, 0, 0, 0.15);
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--panel);
+}
+
+.sidebarPopup > * {
+  width: 100%;
+  height: 100%;
+}
+
+/* Hide toggle button in floating button mode - target all possible button elements */
+.sidebarPopup button[aria-label*="sidebar"],
+.sidebarPopup button[aria-label*="Expand"],
+.sidebarPopup button[aria-label*="Collapse"],
+.sidebarPopup :global(.toggleButton),
+.sidebarPopup :global([data-hide-toggle="true"]) :global(.toggleButton),
+.sidebarPopup :global([data-hide-toggle="true"]) button {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  position: absolute !important;
+  width: 0 !important;
+  height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+}
+
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 400px) {
+  .sidebarPopup {
+    max-width: 85vw;
+  }
+  
+  .headerPopup {
+    left: 85vw;
+  }
+}
+
+@media (max-width: 600px) {
+  .headerPopup {
+    left: 280px;
+  }
+}
+
+/* Hide on desktop */
+@media (min-width: 769px) {
+  .overlay,
+  .headerPopup,
+  .sidebarPopup {
+    display: none;
+  }
+}
+

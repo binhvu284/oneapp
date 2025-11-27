@@ -112,9 +112,12 @@ body,
 #root {
   height: 100%;
   overflow: hidden;
-  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+  font-family: var(--font-family, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
     'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji',
-    'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji');
+  font-size: var(--base-font-size, 16px);
+  line-height: var(--line-height, 1.5);
+  letter-spacing: var(--letter-spacing, 0px);
 }
 
 body {
@@ -184,6 +187,18 @@ select {
   font-family: inherit;
   font-size: inherit;
   color: inherit;
+}
+
+/* ===== ICON SIZING ===== */
+svg {
+  width: var(--icon-size, 20px) !important;
+  height: var(--icon-size, 20px) !important;
+}
+
+/* Override inline width/height attributes for icons */
+svg[width][height] {
+  width: var(--icon-size, 20px) !important;
+  height: var(--icon-size, 20px) !important;
 }
 
 /* ===== SMOOTH TRANSITIONS ===== */

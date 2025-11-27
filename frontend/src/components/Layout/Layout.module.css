@@ -1,7 +1,9 @@
 /* Layout Root Container */
 .root {
+  --sidebar-width: 260px;
+  --sidebar-collapsed-width: 72px;
   display: grid;
-  grid-template-columns: 260px 1fr;
+  grid-template-columns: var(--sidebar-width) 1fr;
   height: 100vh;
   padding: 0;
   box-sizing: border-box;
@@ -11,7 +13,37 @@
 }
 
 .root.collapsed {
-  grid-template-columns: 72px 1fr;
+  grid-template-columns: var(--sidebar-collapsed-width) 1fr;
+}
+
+/* Block Style Layout */
+.root.blockStyle {
+  padding: 16px;
+  gap: 16px;
+}
+
+.root.blockStyle .sidebar {
+  border-radius: 12px !important;
+  margin-top: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+.root.blockStyle .main {
+  border-radius: 0 12px 12px 0;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+  background: var(--content-bg, var(--bg));
+}
+
+.root.blockStyle .main .content {
+  border-radius: 0 0 12px 0;
+}
+
+.root.blockStyle .main .header {
+  border-radius: 12px 12px 0 0 !important;
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
 }
 
 /* Mobile Overlay */
@@ -84,6 +116,27 @@
 
   .root.collapsed {
     grid-template-columns: 1fr;
+  }
+
+  .root.blockStyle {
+    padding: 0;
+    gap: 0;
+  }
+
+  .root.blockStyle .sidebar {
+    border-radius: 0;
+  }
+
+  .root.blockStyle .main {
+    border-radius: 0;
+  }
+
+  .root.blockStyle .main .header {
+    border-radius: 0;
+  }
+
+  .root.blockStyle .main .content {
+    border-radius: 0;
   }
 
   .main {

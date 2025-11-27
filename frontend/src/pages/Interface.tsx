@@ -21,7 +21,7 @@ export function Interface() {
             </div>
           </div>
         </div>
-        <div className={styles.section}>
+        <div className={`${styles.section} ${styles.clickable}`} onClick={() => navigate('/customization/interface/layout')}>
           <div className={styles.sectionHeader}>
             <div className={styles.iconWrapper}>
               <IconLayout />
@@ -34,7 +34,7 @@ export function Interface() {
             </div>
           </div>
         </div>
-        <div className={styles.section}>
+        <div className={`${styles.section} ${styles.clickable}`} onClick={() => navigate('/customization/interface/display')}>
           <div className={styles.sectionHeader}>
             <div className={styles.iconWrapper}>
               <IconDisplay />

@@ -4,8 +4,8 @@
   border-right: 1px solid var(--border);
   padding: 0;
   border-radius: 0;
-  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  width: 260px;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-radius 0.3s ease;
+  width: var(--sidebar-width, 260px);
   height: 100%;
   background: var(--panel);
   position: relative;
@@ -17,6 +17,14 @@
   box-shadow: 2px 0 8px rgba(0, 0, 0, 0.04), 1px 0 2px rgba(0, 0, 0, 0.02);
 }
 
+/* Block style border radius - must be after base styles */
+.root.blockStyle .sidebar {
+  border-radius: 12px !important;
+  overflow: hidden;
+}
+
+/* Block style border radius handled via inline styles in Layout.tsx */
+
 .sidebarContent {
   display: flex;
   flex-direction: column;
@@ -27,7 +35,7 @@
 }
 
 .sidebar.collapsed {
-  width: 72px;
+  width: var(--sidebar-collapsed-width, 72px);
   padding: 0;
 }
 
@@ -46,6 +54,19 @@
 .sidebar.collapsed .logo {
   justify-content: center;
   padding: 20px 12px;
+}
+
+/* Hide toggle button when data-hide-toggle is true */
+[data-hide-toggle="true"] .logo .toggleButton {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  position: absolute !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
 }
 
 .logoContent {
@@ -112,6 +133,19 @@
 
 .toggleButton:active {
   transform: scale(0.95);
+}
+
+/* Hide toggle button when hideToggle prop is true */
+.sidebar[data-hide-toggle="true"] .toggleButton,
+.sidebar[data-hide-toggle="true"] button.toggleButton {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  position: absolute !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
 }
 
 .toggleButton svg {

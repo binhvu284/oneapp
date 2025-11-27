@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useTheme } from '@/contexts/ThemeContext'
-import { IconTheme } from '@/components/Icons'
+import { IconTheme, IconChevronLeft } from '@/components/Icons'
 import { themeTemplates } from '@/data/themes'
 import { ThemeTemplate, CustomTheme } from '@/types/theme'
 import { ThemePreview } from '@/components/ThemePreview'
@@ -9,6 +10,7 @@ import { ThemeManager } from '@/components/ThemeBuilder/ThemeManager'
 import styles from './ThemeSettings.module.css'
 
 export function ThemeSettings() {
+  const navigate = useNavigate()
   const { currentTheme, theme, applyThemeTemplate, applyCustomTheme } = useTheme()
   const [selectedTheme, setSelectedTheme] = useState<ThemeTemplate | null>(null)
   const [showDetail, setShowDetail] = useState(false)
@@ -177,6 +179,10 @@ export function ThemeSettings() {
   return (
     <>
       <div className={styles.themeSettings}>
+        <button className={styles.backButton} onClick={() => navigate('/customization/interface')}>
+          <IconChevronLeft />
+          <span>Back to Interface</span>
+        </button>
         <div className={styles.content}>
           {/* Choose from Templates Section */}
           <div className={styles.section}>

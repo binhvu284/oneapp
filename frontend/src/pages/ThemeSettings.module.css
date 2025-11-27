@@ -4,6 +4,42 @@
   gap: 0;
 }
 
+.backButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  margin-bottom: 24px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  align-self: flex-start;
+}
+
+.backButton:hover {
+  background: var(--bg-hover);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.backButton svg {
+  width: 18px;
+  height: 18px;
+}
+
+@media (max-width: 768px) {
+  .backButton {
+    margin-bottom: 16px;
+    padding: 8px 12px;
+    font-size: 0.85rem;
+  }
+}
+
 .content {
   display: flex;
   flex-direction: column;

@@ -20,6 +20,8 @@ interface SidebarProps {
   onNavigate?: () => void
   onMobileClose?: () => void
   mobileOpen?: boolean
+  hideToggle?: boolean
+  style?: React.CSSProperties
 }
 
 const navigation = [
@@ -34,7 +36,7 @@ const customizationItems = [
   { path: '/customization/system-admin', label: 'System Admin', icon: IconSystemAdmin },
 ]
 
-export function Sidebar({ collapsed, onToggle, onNavigate, onMobileClose, mobileOpen }: SidebarProps) {
+export function Sidebar({ collapsed, onToggle, onNavigate, onMobileClose, mobileOpen, hideToggle = false, style }: SidebarProps) {
   const location = useLocation()
   const [customizationOpen, setCustomizationOpen] = useState<boolean>(() => {
     try {
@@ -83,7 +85,11 @@ export function Sidebar({ collapsed, onToggle, onNavigate, onMobileClose, mobile
   const isCustomizationActive = location.pathname.startsWith('/customization')
 
   return (
-    <aside className={`${styles.sidebar} ${collapsed ? styles.collapsed : ''} ${mobileOpen ? styles.mobileOpen : ''}`}>
+    <aside 
+      className={`${styles.sidebar} ${collapsed ? styles.collapsed : ''} ${mobileOpen ? styles.mobileOpen : ''}`}
+      style={style}
+      data-hide-toggle={hideToggle ? 'true' : 'false'}
+    >
       <div className={styles.logo}>
         {!collapsed && (
           <div className={styles.logoContent}>
@@ -102,13 +108,15 @@ export function Sidebar({ collapsed, onToggle, onNavigate, onMobileClose, mobile
             className={styles.logoImageCollapsed}
           />
         )}
-        <button
-          className={styles.toggleButton}
-          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          onClick={handleToggleClick}
-        >
-          {collapsed ? <IconChevronRight /> : <IconChevronLeft />}
-        </button>
+        {!hideToggle && (
+          <button
+            className={styles.toggleButton}
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            onClick={handleToggleClick}
+          >
+            {collapsed ? <IconChevronRight /> : <IconChevronLeft />}
+          </button>
+        )}
       </div>
       <div className={styles.sidebarContent}>
         <nav className={styles.nav}>

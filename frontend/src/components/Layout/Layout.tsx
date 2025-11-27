@@ -1,6 +1,9 @@
 import { ReactNode, useEffect, useRef, useState } from 'react'
 import { Sidebar } from './Sidebar'
 import { Header } from './Header'
+import { FloatingButton } from './FloatingButton'
+import { MobilePopups } from './MobilePopups'
+import { useLayout } from '@/contexts/LayoutContext'
 import styles from './Layout.module.css'
 
 interface LayoutProps {
@@ -10,6 +13,7 @@ interface LayoutProps {
 }
 
 export function Layout({ children, title, breadcrumbs }: LayoutProps) {
+  const { preferences } = useLayout()
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     try {
       if (typeof window !== 'undefined') {
@@ -23,7 +27,32 @@ export function Layout({ children, title, breadcrumbs }: LayoutProps) {
   })
 
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [floatingMenuOpen, setFloatingMenuOpen] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
   const rootRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768)
+    }
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
+  // Apply dynamic sidebar width and header height
+  useEffect(() => {
+    const root = rootRef.current
+    const documentRoot = document.documentElement
+    if (root) {
+      const sidebarWidth = collapsed ? 72 : preferences.sidebarWidth
+      root.style.setProperty('--sidebar-width', `${sidebarWidth}px`)
+      root.style.setProperty('--sidebar-collapsed-width', '72px')
+      root.style.setProperty('--header-height', `${preferences.headerHeight}px`)
+      // Also set on document root for header to access
+      documentRoot.style.setProperty('--header-height', `${preferences.headerHeight}px`)
+    }
+  }, [preferences.sidebarWidth, preferences.headerHeight, collapsed])
 
   useEffect(() => {
     if (!mobileOpen) return
@@ -65,30 +94,57 @@ export function Layout({ children, title, breadcrumbs }: LayoutProps) {
     }
   }
 
+  const useFloatingLayout = isMobile && preferences.mobileLayoutType === 'floating'
+
   return (
-    <div
-      ref={rootRef}
-      className={`${styles.root} ${collapsed ? styles.collapsed : ''} ${mobileOpen ? styles.mobileOpen : ''}`}
-    >
-      <Sidebar
-        collapsed={collapsed}
-        onToggle={handleToggle}
-        onNavigate={() => setMobileOpen(false)}
-        onMobileClose={() => setMobileOpen(false)}
-        mobileOpen={mobileOpen}
-      />
-      {mobileOpen && (
-        <div className={styles.overlay} onClick={() => setMobileOpen(false)} />
+    <>
+      {useFloatingLayout ? (
+        <>
+          <FloatingButton 
+            onClick={() => setFloatingMenuOpen(!floatingMenuOpen)} 
+            hidden={floatingMenuOpen}
+          />
+          <div className={styles.root}>
+            <div className={styles.main}>
+              <main className={styles.content}>{children}</main>
+            </div>
+          </div>
+          <MobilePopups
+            open={floatingMenuOpen}
+            onClose={() => setFloatingMenuOpen(false)}
+            title={title || 'Dashboard'}
+            breadcrumbs={breadcrumbs}
+          />
+        </>
+      ) : (
+        <div
+          ref={rootRef}
+          className={`${styles.root} ${collapsed ? styles.collapsed : ''} ${mobileOpen ? styles.mobileOpen : ''} ${preferences.layoutStyle === 'block' ? styles.blockStyle : ''}`}
+          data-layout-style={preferences.layoutStyle}
+        >
+          <Sidebar
+            collapsed={collapsed}
+            onToggle={handleToggle}
+            onNavigate={() => setMobileOpen(false)}
+            onMobileClose={() => setMobileOpen(false)}
+            mobileOpen={mobileOpen}
+            style={preferences.layoutStyle === 'block' ? { borderRadius: '12px' } : undefined}
+          />
+          {mobileOpen && (
+            <div className={styles.overlay} onClick={() => setMobileOpen(false)} />
+          )}
+          <div className={styles.main}>
+            <Header
+              title={title || 'Dashboard'}
+              breadcrumbs={breadcrumbs}
+              mobileMenuOpen={mobileOpen}
+              onMobileMenuToggle={handleMobileToggle}
+              style={preferences.layoutStyle === 'block' ? { borderRadius: '12px 12px 0 0' } : undefined}
+            />
+            <main className={styles.content}>{children}</main>
+          </div>
+        </div>
       )}
-      <div className={styles.main}>
-        <Header
-          title={title || 'Dashboard'}
-          breadcrumbs={breadcrumbs}
-          mobileMenuOpen={mobileOpen}
-          onMobileMenuToggle={handleMobileToggle}
-        />
-        <main className={styles.content}>{children}</main>
-      </div>
-    </div>
+    </>
   )
 }
