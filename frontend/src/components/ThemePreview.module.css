@@ -1,0 +1,179 @@
+.preview {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: var(--panel);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+@media (max-width: 768px) {
+  .preview {
+    padding: 12px;
+    gap: 10px;
+  }
+}
+
+.preview:hover {
+  border-color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.preview.active {
+  border-color: var(--primary);
+  background: rgba(37, 99, 235, 0.05);
+}
+
+.previewContainer {
+  display: flex;
+  gap: 4px;
+  height: 120px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.previewSidebar {
+  width: 30%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+}
+
+.previewSidebarItem {
+  height: 8px;
+  border-radius: 4px;
+  background: currentColor;
+  opacity: 0.3;
+}
+
+.previewSidebarItem.active {
+  opacity: 1;
+}
+
+.previewMain {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.previewHeader {
+  height: 20%;
+  display: flex;
+  align-items: center;
+  padding: 4px 8px;
+}
+
+.previewHeaderBar {
+  width: 60%;
+  height: 6px;
+  border-radius: 3px;
+}
+
+.previewContent {
+  flex: 1;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.previewCard {
+  width: 80%;
+  height: 60%;
+  border-radius: 4px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.previewCardLine {
+  height: 4px;
+  border-radius: 2px;
+  opacity: 0.4;
+}
+
+.previewCardLine:first-child {
+  width: 80%;
+}
+
+.previewCardLine:last-child {
+  width: 60%;
+}
+
+.previewInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.previewName {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+}
+
+.previewDescription {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin: 0 0 12px 0;
+  line-height: 1.4;
+}
+
+.previewActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+@media (max-width: 768px) {
+  .previewActions {
+    gap: 6px;
+  }
+  
+  .previewActionButton {
+    flex: 1;
+    padding: 8px 12px;
+    font-size: 0.75rem;
+  }
+}
+
+.previewActionButton {
+  flex: 1;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.previewActionButton:hover {
+  background: var(--bg-hover);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.previewActionButton.applyButton {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.previewActionButton.applyButton:hover {
+  background: var(--primary-dark);
+  border-color: var(--primary-dark);
+  color: white;
+}
+

@@ -1,0 +1,259 @@
+.previewContainer {
+  margin-top: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+/* Sidebar Preview */
+.sidebarPreview {
+  padding: 12px;
+  min-height: 120px;
+  border-right: 2px solid;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sidebarItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 6px;
+}
+
+.sidebarItem.active {
+  font-weight: 600;
+}
+
+.sidebarIcon {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.sidebarText {
+  height: 8px;
+  border-radius: 4px;
+  flex: 1;
+  max-width: 80px;
+}
+
+/* Header Preview */
+.headerPreview {
+  padding: 12px 16px;
+  min-height: 60px;
+  border-bottom: 2px solid;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.headerTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.headerIcon {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+}
+
+.headerTitleText {
+  height: 12px;
+  width: 100px;
+  border-radius: 4px;
+}
+
+.headerUser {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.headerAvatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+}
+
+.headerUserName {
+  height: 10px;
+  width: 60px;
+  border-radius: 4px;
+}
+
+/* Content Preview */
+.contentPreview {
+  padding: 16px;
+  min-height: 120px;
+}
+
+.contentCard {
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.contentTitle {
+  height: 16px;
+  width: 60%;
+  border-radius: 4px;
+}
+
+.contentText {
+  height: 10px;
+  width: 80%;
+  border-radius: 4px;
+}
+
+.contentButton {
+  height: 32px;
+  width: 100px;
+  border-radius: 6px;
+  margin-top: 8px;
+}
+
+/* Full Preview */
+.fullPreview {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  min-height: 300px;
+}
+
+@media (max-width: 768px) {
+  .fullPreview {
+    flex-direction: column;
+    min-height: 200px;
+  }
+  
+  .fullSidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 2px solid;
+    flex-direction: row;
+    padding: 8px;
+    gap: 8px;
+  }
+  
+  .fullSidebarItem {
+    flex: 1;
+  }
+}
+
+.fullSidebar {
+  width: 80px;
+  padding: 12px;
+  border-right: 2px solid;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fullSidebarItem {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  border-radius: 6px;
+}
+
+.fullSidebarItem.active {
+  font-weight: 600;
+}
+
+.fullSidebarIcon {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+}
+
+.fullMain {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.fullHeader {
+  padding: 12px 16px;
+  border-bottom: 2px solid;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 50px;
+}
+
+.fullHeaderTitle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.fullHeaderIcon {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+}
+
+.fullHeaderText {
+  height: 14px;
+  width: 120px;
+  border-radius: 4px;
+}
+
+.fullHeaderUser {
+  display: flex;
+  align-items: center;
+}
+
+.fullHeaderAvatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+}
+
+.fullContent {
+  flex: 1;
+  padding: 20px;
+}
+
+.fullContentCard {
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 400px;
+}
+
+.fullContentTitle {
+  height: 18px;
+  width: 70%;
+  border-radius: 4px;
+}
+
+.fullContentText {
+  height: 12px;
+  width: 90%;
+  border-radius: 4px;
+}
+
+.fullContentButton {
+  height: 36px;
+  width: 120px;
+  border-radius: 6px;
+  margin-top: 12px;
+}
+

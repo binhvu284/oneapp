@@ -1,16 +1,17 @@
 /* Layout Root Container */
 .root {
   display: grid;
-  grid-template-columns: 240px 1fr;
+  grid-template-columns: 260px 1fr;
   height: 100vh;
-  padding: 16px;
+  padding: 0;
   box-sizing: border-box;
   overflow: hidden;
-  transition: grid-template-columns 0.2s ease;
+  transition: grid-template-columns 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  gap: 0;
 }
 
 .root.collapsed {
-  grid-template-columns: 84px 1fr;
+  grid-template-columns: 72px 1fr;
 }
 
 /* Mobile Overlay */
@@ -44,19 +45,17 @@
   grid-template-rows: auto 1fr;
   position: relative;
   z-index: auto;
-  row-gap: 16px;
+  row-gap: 0;
   height: 100%;
   min-height: 500px;
   overflow: hidden;
+  background: var(--content-bg, var(--bg));
 }
 
 /* Content Area */
 .content {
-  padding: 20px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  box-shadow: 0 8px 24px rgba(2, 8, 23, 0.06);
+  padding: 24px;
+  background: var(--bg);
   overflow-x: visible;
   overflow-y: auto;
   min-height: 400px;
@@ -94,9 +93,5 @@
   .content {
     border-radius: 0;
     padding: 16px;
-  }
-
-  .root.mobileOpen .sidebar {
-    transform: translateX(0);
   }
 }

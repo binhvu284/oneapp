@@ -69,6 +69,9 @@ chmod +x start-dev.sh
 **1. Install Dependencies**
 
 ```bash
+# Root (required for npm run dev to work)
+npm install
+
 # Backend
 cd backend
 npm install
@@ -76,6 +79,9 @@ npm install
 # Frontend
 cd frontend
 npm install
+
+# Or use the convenience script:
+npm run install:all
 ```
 
 **2. Create Environment Files**

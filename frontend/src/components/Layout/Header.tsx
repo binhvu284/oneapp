@@ -1,17 +1,29 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
-import { IconDashboard, IconAI, IconModules, IconSettings, IconMenu, IconUser, IconLogout } from '../Icons'
+import { 
+  IconDashboard, 
+  IconAI, 
+  IconModules, 
+  IconSettings, 
+  IconMenu, 
+  IconUser, 
+  IconLogout,
+  IconInterface,
+  IconSystemAdmin,
+  IconTheme
+} from '../Icons'
 import { getAvatarInitial, getAvatarColor } from '@/utils/avatarUtils'
 import styles from './Header.module.css'
 
 interface HeaderProps {
   title: string
+  breadcrumbs?: Array<{ label: string; path: string }>
   mobileMenuOpen?: boolean
   onMobileMenuToggle?: (e: React.MouseEvent) => void
 }
 
-export function Header({ title, mobileMenuOpen, onMobileMenuToggle }: HeaderProps) {
+export function Header({ title, breadcrumbs, mobileMenuOpen, onMobileMenuToggle }: HeaderProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement | null>(null)
   const location = useLocation()
@@ -34,18 +46,28 @@ export function Header({ title, mobileMenuOpen, onMobileMenuToggle }: HeaderProp
   // Get icon for current route
   const iconForRoute = () => {
     if (location.pathname === '/' || location.pathname.startsWith('/dashboard')) {
-      return <IconDashboard style={{ marginRight: 8 }} />
+      return <IconDashboard />
     }
     if (location.pathname.startsWith('/ai')) {
-      return <IconAI style={{ marginRight: 8 }} />
+      return <IconAI />
     }
     if (location.pathname.startsWith('/modules')) {
-      return <IconModules style={{ marginRight: 8 }} />
+      return <IconModules />
     }
     if (location.pathname.startsWith('/settings')) {
-      return <IconSettings style={{ marginRight: 8 }} />
+      return <IconSettings />
     }
-    return null
+    if (location.pathname.startsWith('/customization/interface/theme')) {
+      return <IconTheme />
+    }
+    if (location.pathname.startsWith('/customization/interface')) {
+      return <IconInterface />
+    }
+    if (location.pathname.startsWith('/customization/system-admin')) {
+      return <IconSystemAdmin />
+    }
+    // Default icon for unknown routes
+    return <IconDashboard />
   }
 
   const handleLogout = async () => {
@@ -74,7 +96,27 @@ export function Header({ title, mobileMenuOpen, onMobileMenuToggle }: HeaderProp
       )}
       <div className={styles.pageTitle}>
         {iconForRoute()}
-        <span>{title}</span>
+        {breadcrumbs && breadcrumbs.length > 0 ? (
+          <div className={styles.breadcrumbs}>
+            {breadcrumbs.map((crumb, index) => (
+              <span key={crumb.path} className={styles.breadcrumb}>
+                {index > 0 && <span className={styles.separator}>/</span>}
+                {index === breadcrumbs.length - 1 ? (
+                  <span className={styles.current}>{crumb.label}</span>
+                ) : (
+                  <button
+                    className={styles.breadcrumbLink}
+                    onClick={() => navigate(crumb.path)}
+                  >
+                    {crumb.label}
+                  </button>
+                )}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <span>{title}</span>
+        )}
       </div>
       <div className={styles.actions} ref={menuRef}>
         <button className={styles.userButton} onClick={() => setDropdownOpen(!dropdownOpen)}>

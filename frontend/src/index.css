@@ -7,10 +7,12 @@
   --bg: #f6f8fb;
   --panel: #ffffff;
   --bg-secondary: #f9fafb;
+  --bg-hover: #f3f4f6;
 
   /* Text Colors */
   --text: #101828;
   --text-primary: #101828;
+  --text-secondary: #475467;
   --muted: #475467;
 
   /* Primary Colors */
@@ -33,6 +35,15 @@
   /* Borders & Dividers */
   --border: #e5e7eb;
   --border-light: #f3f4f6;
+
+  /* Component-specific colors */
+  --sidebar-bg: #ffffff;
+  --sidebar-text: #475467;
+  --sidebar-active: #2563eb;
+  --header-bg: #ffffff;
+  --header-text: #101828;
+  --content-bg: #f6f8fb;
+  --content-text: #101828;
 
   /* Z-Index System */
   --z-base: 1;
@@ -58,8 +69,10 @@
   --bg: #0a0a0a;
   --panel: #1a1a1a;
   --bg-secondary: #2a2a2a;
+  --bg-hover: #2a2a2a;
   --text: #ffffff;
   --text-primary: #ffffff;
+  --text-secondary: #b0b0b0;
   --muted: #b0b0b0;
   --primary: #3b82f6;
   --primary-dark: #2563eb;
@@ -76,6 +89,15 @@
   --info-light: #1e3a8a;
   --border: #333333;
   --border-light: #2a2a2a;
+
+  /* Component-specific colors */
+  --sidebar-bg: #1a1a1a;
+  --sidebar-text: #b0b0b0;
+  --sidebar-active: #3b82f6;
+  --header-bg: #1a1a1a;
+  --header-text: #ffffff;
+  --content-bg: #0a0a0a;
+  --content-text: #ffffff;
 }
 
 /* ===== BASE STYLES ===== */

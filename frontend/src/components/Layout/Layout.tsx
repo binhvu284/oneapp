@@ -6,9 +6,10 @@ import styles from './Layout.module.css'
 interface LayoutProps {
   children: ReactNode
   title?: string
+  breadcrumbs?: Array<{ label: string; path: string }>
 }
 
-export function Layout({ children, title }: LayoutProps) {
+export function Layout({ children, title, breadcrumbs }: LayoutProps) {
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     try {
       if (typeof window !== 'undefined') {
@@ -74,6 +75,7 @@ export function Layout({ children, title }: LayoutProps) {
         onToggle={handleToggle}
         onNavigate={() => setMobileOpen(false)}
         onMobileClose={() => setMobileOpen(false)}
+        mobileOpen={mobileOpen}
       />
       {mobileOpen && (
         <div className={styles.overlay} onClick={() => setMobileOpen(false)} />
@@ -81,6 +83,7 @@ export function Layout({ children, title }: LayoutProps) {
       <div className={styles.main}>
         <Header
           title={title || 'Dashboard'}
+          breadcrumbs={breadcrumbs}
           mobileMenuOpen={mobileOpen}
           onMobileMenuToggle={handleMobileToggle}
         />

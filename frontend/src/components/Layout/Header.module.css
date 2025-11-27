@@ -3,12 +3,13 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 16px;
+  padding: 5px 24px;
   height: fit-content;
+  min-height: 56px;
   background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  box-shadow: 0 8px 24px rgba(2, 8, 23, 0.06);
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
   position: relative;
   z-index: var(--z-header);
   transition: all 0.2s ease;
@@ -44,18 +45,64 @@
 .pageTitle {
   display: flex;
   align-items: center;
+  gap: 12px;
   font-weight: 700;
   font-size: 1.1rem;
-  color: var(--text);
+  color: var(--header-text, var(--text));
   flex: 1;
 }
 
 .pageTitle svg {
   color: var(--primary);
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
 }
 
 .pageTitle span {
-  margin-left: 4px;
+  margin: 0;
+}
+
+/* Breadcrumbs */
+.breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.separator {
+  color: var(--text-secondary);
+  margin: 0 4px;
+  font-weight: 400;
+}
+
+.breadcrumbLink {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.2s ease;
+  text-decoration: none;
+}
+
+.breadcrumbLink:hover {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+.current {
+  color: var(--text);
+  font-weight: 700;
 }
 
 /* Actions Container */
