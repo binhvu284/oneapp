@@ -155,6 +155,7 @@
   position: sticky;
   top: 24px;
   max-height: calc(100vh - 200px);
+  max-height: calc(100dvh - 200px); /* Use dynamic viewport height for mobile browsers */
   overflow-y: auto;
 }
 

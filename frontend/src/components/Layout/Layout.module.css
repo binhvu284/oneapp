@@ -5,6 +5,7 @@
   display: grid;
   grid-template-columns: var(--sidebar-width) 1fr;
   height: 100vh;
+  height: 100dvh; /* Use dynamic viewport height for mobile browsers */
   padding: 0;
   box-sizing: border-box;
   overflow: hidden;
