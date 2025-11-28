@@ -419,15 +419,18 @@
     left: 0;
     top: 0;
     height: 100vh;
+    height: 100dvh; /* Use dynamic viewport height for mobile browsers */
     z-index: calc(var(--z-mobile-menu) + 1);
     transform: translateX(-100%);
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     border-radius: 0;
     width: 260px !important;
     padding: 0;
-    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+    box-shadow: 2px 0 12px rgba(0, 0, 0, 0.1), 1px 0 4px rgba(0, 0, 0, 0.05);
     overflow-y: auto;
     overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
   }
 
   .sidebar.mobileOpen {
@@ -438,16 +441,6 @@
     width: 260px !important;
   }
 
-  .sidebar {
-    box-shadow: 2px 0 12px rgba(0, 0, 0, 0.1), 1px 0 4px rgba(0, 0, 0, 0.05);
-  }
-
-  .sidebarContent {
-    min-height: 100%;
-    display: flex;
-    flex-direction: column;
-  }
-
   .sidebarContent {
     flex: 1;
     min-height: 0;
@@ -455,10 +448,12 @@
     flex-direction: column;
     overflow-y: auto;
     overflow-x: hidden;
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
   }
 
   .customizationSection {
     flex-shrink: 0;
     background: var(--panel);
+    margin-top: auto; /* Push to bottom */
   }
 }
