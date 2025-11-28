@@ -10,9 +10,24 @@ import {
   IconChevronDown,
   IconChevronUp,
   IconInterface,
-  IconSystemAdmin
+  IconSystemAdmin,
+  IconSearch,
+  IconBell
 } from '../Icons'
+import { useNavigation } from '@/contexts/NavigationContext'
 import styles from './Sidebar.module.css'
+
+// Icon map for dynamic icon loading
+const iconMap: Record<string, React.ComponentType<React.SVGProps<SVGSVGElement>>> = {
+  IconDashboard,
+  IconAI,
+  IconModules,
+  IconSettings,
+  IconSearch,
+  IconBell,
+  IconInterface,
+  IconSystemAdmin,
+}
 
 interface SidebarProps {
   collapsed: boolean
@@ -24,13 +39,6 @@ interface SidebarProps {
   style?: React.CSSProperties
 }
 
-const navigation = [
-  { path: '/', label: 'Dashboard', icon: IconDashboard },
-  { path: '/ai', label: 'AI Assistant', icon: IconAI },
-  { path: '/modules', label: 'Modules', icon: IconModules },
-  { path: '/settings', label: 'Settings', icon: IconSettings },
-]
-
 const customizationItems = [
   { path: '/customization/interface', label: 'Interface', icon: IconInterface },
   { path: '/customization/system-admin', label: 'System Admin', icon: IconSystemAdmin },
@@ -38,6 +46,8 @@ const customizationItems = [
 
 export function Sidebar({ collapsed, onToggle, onNavigate, onMobileClose, mobileOpen, hideToggle = false, style }: SidebarProps) {
   const location = useLocation()
+  const { config } = useNavigation()
+  const [customSectionsOpen, setCustomSectionsOpen] = useState<Record<string, boolean>>({})
   const [customizationOpen, setCustomizationOpen] = useState<boolean>(() => {
     try {
       if (typeof window !== 'undefined') {
@@ -55,7 +65,21 @@ export function Sidebar({ collapsed, onToggle, onNavigate, onMobileClose, mobile
     if (location.pathname.startsWith('/customization')) {
       setCustomizationOpen(true)
     }
-  }, [location.pathname])
+    
+    // Auto-open custom sections if on a page within that section
+    if (config?.customSections) {
+      const newSectionsOpen: Record<string, boolean> = {}
+      config.customSections.forEach((section) => {
+        const isActive = section.items?.some((item) => location.pathname === item.path) || false
+        if (isActive) {
+          newSectionsOpen[section.id] = true
+        }
+      })
+      if (Object.keys(newSectionsOpen).length > 0) {
+        setCustomSectionsOpen((prev) => ({ ...prev, ...newSectionsOpen }))
+      }
+    }
+  }, [location.pathname, config?.customSections])
 
   useEffect(() => {
     try {
@@ -82,11 +106,28 @@ export function Sidebar({ collapsed, onToggle, onNavigate, onMobileClose, mobile
     setCustomizationOpen(!customizationOpen)
   }
 
+  const toggleCustomSection = (sectionId: string) => {
+    if (collapsed) return // Don't toggle when collapsed
+    setCustomSectionsOpen((prev) => ({
+      ...prev,
+      [sectionId]: !prev[sectionId],
+    }))
+  }
+
   const isCustomizationActive = location.pathname.startsWith('/customization')
+
+  // Get enabled basic items
+  const enabledBasicItems = config?.basicItems?.filter((item) => item.enabled) || []
+
+  // Get icon component by name
+  const getIcon = (iconName: string) => {
+    if (!iconName) return IconDashboard
+    return iconMap[iconName] || IconDashboard
+  }
 
   return (
     <aside 
-      className={`${styles.sidebar} ${collapsed ? styles.collapsed : ''} ${mobileOpen ? styles.mobileOpen : ''}`}
+      className={`${styles.sidebar} ${collapsed ? styles.collapsed : ''} ${mobileOpen ? styles.mobileOpen : ''} ${hideToggle ? styles.hideToggle : ''}`}
       style={style}
       data-hide-toggle={hideToggle ? 'true' : 'false'}
     >
@@ -101,13 +142,6 @@ export function Sidebar({ collapsed, onToggle, onNavigate, onMobileClose, mobile
             <span className={styles.logoText}>OneApp</span>
           </div>
         )}
-        {collapsed && (
-          <img 
-            src="/icon.png" 
-            alt="OneApp Logo" 
-            className={styles.logoImageCollapsed}
-          />
-        )}
         {!hideToggle && (
           <button
             className={styles.toggleButton}
@@ -119,12 +153,13 @@ export function Sidebar({ collapsed, onToggle, onNavigate, onMobileClose, mobile
         )}
       </div>
       <div className={styles.sidebarContent}>
+        {/* Basic Navigation Items */}
         <nav className={styles.nav}>
-          {navigation.map((item) => {
-            const Icon = item.icon
+          {enabledBasicItems.map((item) => {
+            const Icon = getIcon(item.icon)
             return (
               <NavLink
-                key={item.path}
+                key={item.id}
                 to={item.path}
                 onClick={onNavigate}
                 className={({ isActive }) =>
@@ -138,6 +173,72 @@ export function Sidebar({ collapsed, onToggle, onNavigate, onMobileClose, mobile
             )
           })}
         </nav>
+
+        {/* Custom Sections - Scrollable */}
+        {config?.customSections && config.customSections.length > 0 && (
+          <div className={styles.customSections}>
+            {config.customSections.map((section) => {
+              const isOpen = customSectionsOpen[section.id] ?? section.expanded
+              return (
+                <div key={section.id} className={styles.customSection}>
+                  {!collapsed ? (
+                    <>
+                      <button
+                        className={styles.sectionHeader}
+                        onClick={() => toggleCustomSection(section.id)}
+                        type="button"
+                      >
+                        <span className={styles.sectionTitle}>{section.label}</span>
+                        <span className={styles.sectionToggle}>
+                          {isOpen ? <IconChevronUp /> : <IconChevronDown />}
+                        </span>
+                      </button>
+                      <nav className={`${styles.sectionContent} ${isOpen ? styles.open : ''}`}>
+                        {section.items.map((item) => {
+                          const Icon = getIcon(item.icon)
+                          return (
+                            <NavLink
+                              key={item.id}
+                              to={item.path}
+                              onClick={onNavigate}
+                              className={({ isActive }) =>
+                                `${styles.sectionLink} ${isActive ? styles.active : ''}`
+                              }
+                            >
+                              <Icon />
+                              <span>{item.label}</span>
+                            </NavLink>
+                          )
+                        })}
+                      </nav>
+                    </>
+                  ) : (
+                    <div className={styles.collapsedSection}>
+                      {section.items.map((item) => {
+                        const Icon = getIcon(item.icon)
+                        return (
+                          <NavLink
+                            key={item.id}
+                            to={item.path}
+                            onClick={onNavigate}
+                            className={({ isActive }) =>
+                              `${styles.sectionLink} ${isActive ? styles.active : ''}`
+                            }
+                            title={item.label}
+                          >
+                            <Icon />
+                          </NavLink>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        {/* Customization Section */}
         <div className={styles.customizationSection}>
           {!collapsed ? (
             <>

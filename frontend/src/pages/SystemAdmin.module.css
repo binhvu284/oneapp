@@ -1,24 +1,7 @@
 .systemAdmin {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-}
-
-.header {
-  margin-bottom: 8px;
-}
-
-.title {
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: var(--text);
-  margin: 0 0 8px 0;
-}
-
-.subtitle {
-  font-size: 1rem;
-  color: var(--text-secondary);
-  margin: 0;
+  gap: 0;
 }
 
 .content {
@@ -27,23 +10,76 @@
   gap: 16px;
 }
 
+@media (max-width: 768px) {
+  .content {
+    gap: 12px;
+  }
+}
+
 .section {
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 20px;
+  transition: all 0.2s ease;
 }
 
-.section h2 {
+@media (max-width: 768px) {
+  .section {
+    padding: 16px;
+    border-radius: 8px;
+  }
+}
+
+.section:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border-color: var(--primary);
+}
+
+.sectionHeader {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+@media (max-width: 768px) {
+  .sectionHeader {
+    gap: 12px;
+  }
+}
+
+.iconWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  background: rgba(37, 99, 235, 0.1);
+  border-radius: 8px;
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.iconWrapper svg {
+  width: 20px;
+  height: 20px;
+}
+
+.sectionContent {
+  flex: 1;
+}
+
+.sectionContent h2 {
   font-size: 1.125rem;
   font-weight: 600;
   color: var(--text);
   margin: 0 0 8px 0;
 }
 
-.section p {
+.description {
   font-size: 0.9rem;
+  line-height: 1.5;
   color: var(--text-secondary);
   margin: 0;
 }
-

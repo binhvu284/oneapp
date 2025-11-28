@@ -11,7 +11,8 @@ import {
   IconLogout,
   IconInterface,
   IconSystemAdmin,
-  IconTheme
+  IconTheme,
+  IconStorage
 } from '../Icons'
 import { getAvatarInitial, getAvatarColor } from '@/utils/avatarUtils'
 import styles from './Header.module.css'
@@ -178,6 +179,16 @@ export function Header({ title, breadcrumbs, mobileMenuOpen, onMobileMenuToggle,
             >
               <IconSettings style={{ marginRight: 8 }} />
               Settings
+            </button>
+            <button
+              className={styles.dropdownItem}
+              onClick={() => {
+                setDropdownOpen(false)
+                navigate('/library')
+              }}
+            >
+              <IconStorage style={{ marginRight: 8 }} />
+              Library
             </button>
             <div className={styles.divider} />
             <button className={styles.dropdownItem} onClick={handleLogout}>

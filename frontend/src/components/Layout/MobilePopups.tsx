@@ -31,12 +31,10 @@ export function MobilePopups({ open, onClose, title, breadcrumbs }: MobilePopups
     const handleClickOutside = (e: MouseEvent | TouchEvent) => {
       const target = e.target as Node
       
-      // Check if click is outside both sidebar and header
+      // Check if click is outside sidebar (header is hidden in floating mode)
       if (
         sidebarRef.current &&
-        headerRef.current &&
-        !sidebarRef.current.contains(target) &&
-        !headerRef.current.contains(target)
+        !sidebarRef.current.contains(target)
       ) {
         onClose()
       }
@@ -66,7 +64,8 @@ export function MobilePopups({ open, onClose, title, breadcrumbs }: MobilePopups
           hideToggle={true}
         />
       </div>
-      <div ref={headerRef} className={styles.headerPopup}>
+      {/* Header popup hidden in floating button mode */}
+      <div ref={headerRef} className={`${styles.headerPopup} ${styles.hidden}`}>
         <Header
           title={title}
           breadcrumbs={breadcrumbs}

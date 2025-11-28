@@ -341,6 +341,23 @@
   line-height: 1.4;
 }
 
+/* Hide desktop-only sections on mobile */
+.desktopOnly {
+  display: block;
+}
+
+/* Show mobile-only sections on mobile */
+.mobileOnly {
+  display: block;
+}
+
+/* Hide mobile-only sections on desktop */
+@media (min-width: 769px) {
+  .mobileOnly {
+    display: none !important;
+  }
+}
+
 /* Mobile Responsive */
 @media (max-width: 768px) {
   .layoutOptions {
@@ -354,6 +371,11 @@
   .section {
     padding: 16px;
     border-radius: 8px;
+  }
+
+  /* Hide desktop-only sections on mobile */
+  .desktopOnly {
+    display: none !important;
   }
 
   .sectionHeader h2 {

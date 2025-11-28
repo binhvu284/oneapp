@@ -32,7 +32,7 @@ export function LayoutOptions() {
         <span>Back to Interface</span>
       </button>
       <div className={styles.content}>
-        <div className={styles.section}>
+        <div className={`${styles.section} ${styles.desktopOnly}`}>
           <div className={styles.sectionHeader}>
             <div className={styles.sectionTitleGroup}>
               <h2>Sidebar Width</h2>
@@ -69,7 +69,7 @@ export function LayoutOptions() {
           </div>
         </div>
 
-        <div className={styles.section}>
+        <div className={`${styles.section} ${styles.desktopOnly}`}>
           <div className={styles.sectionHeader}>
             <div className={styles.sectionTitleGroup}>
               <h2>Header Height</h2>
@@ -106,7 +106,7 @@ export function LayoutOptions() {
           </div>
         </div>
 
-        <div className={styles.section}>
+        <div className={`${styles.section} ${styles.desktopOnly}`}>
           <div className={styles.sectionHeader}>
             <div className={styles.sectionTitleGroup}>
               <h2>Layout Style</h2>
@@ -157,7 +157,7 @@ export function LayoutOptions() {
           </div>
         </div>
 
-        <div className={styles.section}>
+        <div className={`${styles.section} ${styles.mobileOnly}`}>
           <div className={styles.sectionHeader}>
             <div className={styles.sectionTitleGroup}>
               <h2>Mobile Layout</h2>

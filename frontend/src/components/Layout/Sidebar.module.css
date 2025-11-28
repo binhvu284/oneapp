@@ -30,8 +30,7 @@
   flex-direction: column;
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden; /* Don't scroll the container, let children handle scrolling */
 }
 
 .sidebar.collapsed {
@@ -56,7 +55,21 @@
   padding: 20px 12px;
 }
 
-/* Hide toggle button when data-hide-toggle is true */
+/* Hide logo image when collapsed - only show toggle button */
+.sidebar.collapsed .logoImageCollapsed {
+  display: none !important;
+}
+
+/* Adjust logo layout when toggle button is hidden */
+.sidebar.hideToggle .logo,
+.sidebar[data-hide-toggle="true"] .logo {
+  justify-content: flex-start;
+  padding-right: 16px;
+}
+
+/* Hide toggle button when hideToggle is true */
+.sidebar.hideToggle .toggleButton,
+.sidebar[data-hide-toggle="true"] .toggleButton,
 [data-hide-toggle="true"] .logo .toggleButton {
   display: none !important;
   visibility: hidden !important;
@@ -67,6 +80,8 @@
   height: 0 !important;
   overflow: hidden !important;
   clip: rect(0, 0, 0, 0) !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
 .logoContent {
@@ -104,9 +119,7 @@
   display: none;
 }
 
-.sidebar.collapsed .logoImageCollapsed {
-  display: block;
-}
+/* Logo image is hidden when collapsed - only toggle button is shown */
 
 /* Toggle Button */
 .toggleButton {
@@ -135,8 +148,10 @@
   transform: scale(0.95);
 }
 
-/* Hide toggle button when hideToggle prop is true */
-.sidebar[data-hide-toggle="true"] .toggleButton,
+/* Hide toggle button when hideToggle prop is true - additional specificity */
+.sidebar.hideToggle .logo .toggleButton,
+.sidebar.hideToggle button.toggleButton,
+.sidebar[data-hide-toggle="true"] .logo .toggleButton,
 .sidebar[data-hide-toggle="true"] button.toggleButton {
   display: none !important;
   visibility: hidden !important;
@@ -146,6 +161,8 @@
   width: 0 !important;
   height: 0 !important;
   overflow: hidden !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
 .toggleButton svg {
@@ -158,9 +175,44 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+  flex-shrink: 0;
+  padding: 12px 8px;
+  overflow: visible; /* Don't scroll basic nav */
+}
+
+/* Custom Sections - Scrollable area between basic nav and customization */
+.customSections {
   flex: 1;
   min-height: 0;
-  padding: 12px 8px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+}
+
+.customSections::-webkit-scrollbar {
+  width: 6px;
+}
+
+.customSections::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.customSections::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+  transition: background 0.2s ease;
+}
+
+.customSections::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+
+.customSection {
+  flex-shrink: 0;
 }
 
 .sidebar.collapsed .nav {

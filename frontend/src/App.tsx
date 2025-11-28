@@ -9,20 +9,27 @@ import { ThemeSettings } from './pages/ThemeSettings'
 import { LayoutOptions } from './pages/LayoutOptions'
 import { DisplayOptions } from './pages/DisplayOptions'
 import { SystemAdmin } from './pages/SystemAdmin'
+import { SidebarConfiguration } from './pages/SidebarConfiguration'
+import { HeaderSetting } from './pages/HeaderSetting'
+import { Library } from './pages/Library'
 import { AuthProvider } from './contexts/AuthContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { LayoutProvider } from './contexts/LayoutContext'
 import { DisplayProvider } from './contexts/DisplayContext'
+import { NavigationProvider } from './contexts/NavigationContext'
 
 const pageTitles: Record<string, string> = {
   '/': 'Dashboard',
   '/ai': 'AI Assistant',
   '/modules': 'Modules',
   '/settings': 'Settings',
+  '/library': 'Library',
   '/customization/interface': 'Interface',
   '/customization/interface/theme': 'Theme Settings',
   '/customization/interface/layout': 'Layout Options',
   '/customization/interface/display': 'Display Settings',
+  '/customization/interface/sidebar': 'Sidebar Setting',
+  '/customization/interface/header': 'Header Setting',
   '/customization/system-admin': 'System Admin',
 }
 
@@ -39,6 +46,14 @@ const pageBreadcrumbs: Record<string, Array<{ label: string; path: string }>> = 
     { label: 'Interface', path: '/customization/interface' },
     { label: 'Display Settings', path: '/customization/interface/display' },
   ],
+  '/customization/interface/sidebar': [
+    { label: 'Interface', path: '/customization/interface' },
+    { label: 'Sidebar Setting', path: '/customization/interface/sidebar' },
+  ],
+  '/customization/interface/header': [
+    { label: 'Interface', path: '/customization/interface' },
+    { label: 'Header Setting', path: '/customization/interface/header' },
+  ],
 }
 
 function AppContent() {
@@ -53,10 +68,13 @@ function AppContent() {
         <Route path="/ai" element={<AIAssistant />} />
         <Route path="/modules" element={<Modules />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/library" element={<Library />} />
         <Route path="/customization/interface" element={<Interface />} />
         <Route path="/customization/interface/theme" element={<ThemeSettings />} />
         <Route path="/customization/interface/layout" element={<LayoutOptions />} />
         <Route path="/customization/interface/display" element={<DisplayOptions />} />
+        <Route path="/customization/interface/sidebar" element={<SidebarConfiguration />} />
+        <Route path="/customization/interface/header" element={<HeaderSetting />} />
         <Route path="/customization/system-admin" element={<SystemAdmin />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
@@ -69,11 +87,13 @@ function App() {
     <ThemeProvider>
       <LayoutProvider>
         <DisplayProvider>
-          <AuthProvider>
-            <Router>
-              <AppContent />
-            </Router>
-          </AuthProvider>
+          <NavigationProvider>
+            <AuthProvider>
+              <Router>
+                <AppContent />
+              </Router>
+            </AuthProvider>
+          </NavigationProvider>
         </DisplayProvider>
       </LayoutProvider>
     </ThemeProvider>
