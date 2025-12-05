@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { allPages, categories, searchPages, type PageInfo, type AppStatus } from '@/data/pages'
-import { IconSearch, IconFilter, IconChevronRight } from '@/components/Icons'
+import { IconSearch, IconFilter, IconChevronRight, IconEye, IconExternalLink, IconInUse, IconIntegrated, IconOpenSource, IconCore, IconTools, IconCategory, IconSettings } from '@/components/Icons'
 import { getIcon } from '@/utils/iconUtils'
 import styles from './Library.module.css'
 
@@ -12,6 +12,7 @@ export function Library() {
   const [section, setSection] = useState<Section>('Home')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  const [selectedAppType, setSelectedAppType] = useState<string | null>(null)
   const [showFilters, setShowFilters] = useState(false)
 
   // Home sections configuration
@@ -58,12 +59,31 @@ export function Library() {
     navigate(`/library/${page.id}`)
   }
 
+  const handleDetailClick = (e: React.MouseEvent, page: PageInfo) => {
+    e.stopPropagation()
+    navigate(`/library/${page.id}`)
+  }
+
+  const handleOpenClick = (e: React.MouseEvent, page: PageInfo) => {
+    e.stopPropagation()
+    if (page.status === 'Available' && page.enabled) {
+      navigate(page.path)
+    }
+  }
+
   const handleCategoryClick = (category: string) => {
     setSelectedCategory(category)
+    setSelectedAppType(null)
+  }
+
+  const handleAppTypeClick = (appType: string) => {
+    setSelectedAppType(appType)
+    setSelectedCategory(null)
   }
 
   const handleBackToCategories = () => {
     setSelectedCategory(null)
+    setSelectedAppType(null)
   }
 
   const getStatusColor = (status: AppStatus) => {
@@ -93,6 +113,34 @@ export function Library() {
         return styles.appTypeCustom
       default:
         return ''
+    }
+  }
+
+  const getAppTypeIcon = (appType: string) => {
+    switch (appType) {
+      case 'In use app':
+        return IconInUse
+      case 'Integrated':
+        return IconIntegrated
+      case 'Open source':
+        return IconOpenSource
+      default:
+        return IconInUse
+    }
+  }
+
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case 'Core':
+        return IconCore
+      case 'Tools':
+        return IconTools
+      case 'System':
+        return IconSettings
+      case 'Customization':
+        return IconCategory
+      default:
+        return IconCategory
     }
   }
 
@@ -134,18 +182,37 @@ export function Library() {
                       <div className={styles.pageInfo}>
                         <div className={styles.pageHeader}>
                           <h3 className={styles.pageName}>{page.name}</h3>
-                          <span className={`${styles.statusBadge} ${getStatusColor(page.status)}`}>
-                            {page.status}
-                          </span>
                         </div>
                         <p className={styles.pageDescription}>{page.description}</p>
                       </div>
                     </div>
                     <div className={styles.pageMeta}>
+                      <span className={`${styles.statusBadge} ${getStatusColor(page.status)}`}>
+                        {page.status}
+                      </span>
                       <span className={`${styles.appTypeBadge} ${getAppTypeColor(page.appType)}`}>
                         {page.appType}
                       </span>
                       <span className={styles.pageCategory}>{page.category}</span>
+                    </div>
+                    <div className={styles.cardActions}>
+                      <button
+                        className={styles.actionButton}
+                        onClick={(e) => handleDetailClick(e, page)}
+                        title="View Details"
+                      >
+                        <IconEye />
+                        <span>Detail</span>
+                      </button>
+                      <button
+                        className={`${styles.actionButton} ${page.status === 'Available' && page.enabled ? styles.actionButtonPrimary : styles.actionButtonDisabled}`}
+                        onClick={(e) => handleOpenClick(e, page)}
+                        disabled={page.status !== 'Available' || !page.enabled}
+                        title="Open App"
+                      >
+                        <IconExternalLink />
+                        <span>Open</span>
+                      </button>
                     </div>
                   </div>
                 )
@@ -175,27 +242,45 @@ export function Library() {
             <div
               key={page.id}
               className={`${styles.listCard} ${page.featured ? styles.featured : ''}`}
-              onClick={() => handleCardClick(page)}
             >
-              <div className={styles.listCardLeft}>
+              <div className={styles.listCardLeft} onClick={() => handleCardClick(page)}>
                 <div className={styles.pageAvatar}>
                   <Icon />
                 </div>
                 <div className={styles.listCardInfo}>
                   <div className={styles.pageHeader}>
                     <h3 className={styles.pageName}>{page.name}</h3>
-                    <span className={`${styles.statusBadge} ${getStatusColor(page.status)}`}>
-                      {page.status}
-                    </span>
                   </div>
                   <p className={styles.pageDescription}>{page.description}</p>
                   <div className={styles.pageMeta}>
+                    <span className={`${styles.statusBadge} ${getStatusColor(page.status)}`}>
+                      {page.status}
+                    </span>
                     <span className={`${styles.appTypeBadge} ${getAppTypeColor(page.appType)}`}>
                       {page.appType}
                     </span>
                     <span className={styles.pageCategory}>{page.category}</span>
                   </div>
                 </div>
+              </div>
+              <div className={styles.listCardActions}>
+                <button
+                  className={styles.actionButton}
+                  onClick={(e) => handleDetailClick(e, page)}
+                  title="View Details"
+                >
+                  <IconEye />
+                  <span>Detail</span>
+                </button>
+                <button
+                  className={`${styles.actionButton} ${page.status === 'Available' && page.enabled ? styles.actionButtonPrimary : styles.actionButtonDisabled}`}
+                  onClick={(e) => handleOpenClick(e, page)}
+                  disabled={page.status !== 'Available' || !page.enabled}
+                  title="Open App"
+                >
+                  <IconExternalLink />
+                  <span>Open</span>
+                </button>
               </div>
             </div>
           )
@@ -206,8 +291,82 @@ export function Library() {
 
   // Render Categories section
   const renderCategoriesSection = () => {
+    // Show apps in selected app type
+    if (selectedAppType) {
+      const appTypeApps = allPages.filter((page) => page.appType === selectedAppType)
+      const filteredAppTypeApps = searchQuery.trim()
+        ? searchPages(searchQuery).filter((page) => appTypeApps.includes(page))
+        : appTypeApps
+
+      return (
+        <div>
+          <button className={styles.backButton} onClick={handleBackToCategories}>
+            ← Back to Categories
+          </button>
+          <h2 className={styles.categoryTitle}>{selectedAppType}</h2>
+          {filteredAppTypeApps.length === 0 ? (
+            <div className={styles.emptyState}>
+              <p>No apps found for this app type.</p>
+            </div>
+          ) : (
+            <div className={styles.listView}>
+              {filteredAppTypeApps.map((page) => {
+                const Icon = getIcon(page.icon)
+                return (
+                  <div
+                    key={page.id}
+                    className={`${styles.listCard} ${page.featured ? styles.featured : ''}`}
+                  >
+                    <div className={styles.listCardLeft} onClick={() => handleCardClick(page)}>
+                      <div className={styles.pageAvatar}>
+                        <Icon />
+                      </div>
+                      <div className={styles.listCardInfo}>
+                        <div className={styles.pageHeader}>
+                          <h3 className={styles.pageName}>{page.name}</h3>
+                        </div>
+                        <p className={styles.pageDescription}>{page.description}</p>
+                        <div className={styles.pageMeta}>
+                          <span className={`${styles.statusBadge} ${getStatusColor(page.status)}`}>
+                            {page.status}
+                          </span>
+                          <span className={`${styles.appTypeBadge} ${getAppTypeColor(page.appType)}`}>
+                            {page.appType}
+                          </span>
+                          <span className={styles.pageCategory}>{page.category}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className={styles.listCardActions}>
+                      <button
+                        className={styles.actionButton}
+                        onClick={(e) => handleDetailClick(e, page)}
+                        title="View Details"
+                      >
+                        <IconEye />
+                        <span>Detail</span>
+                      </button>
+                      <button
+                        className={`${styles.actionButton} ${page.status === 'Available' && page.enabled ? styles.actionButtonPrimary : styles.actionButtonDisabled}`}
+                        onClick={(e) => handleOpenClick(e, page)}
+                        disabled={page.status !== 'Available' || !page.enabled}
+                        title="Open App"
+                      >
+                        <IconExternalLink />
+                        <span>Open</span>
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )
+    }
+
+    // Show apps in selected category
     if (selectedCategory) {
-      // Show apps in selected category
       const categoryApps = allPages.filter((page) => page.category === selectedCategory)
       const filteredCategoryApps = searchQuery.trim()
         ? searchPages(searchQuery).filter((page) => categoryApps.includes(page))
@@ -231,26 +390,44 @@ export function Library() {
                   <div
                     key={page.id}
                     className={`${styles.listCard} ${page.featured ? styles.featured : ''}`}
-                    onClick={() => handleCardClick(page)}
                   >
-                    <div className={styles.listCardLeft}>
+                    <div className={styles.listCardLeft} onClick={() => handleCardClick(page)}>
                       <div className={styles.pageAvatar}>
                         <Icon />
                       </div>
                       <div className={styles.listCardInfo}>
                         <div className={styles.pageHeader}>
                           <h3 className={styles.pageName}>{page.name}</h3>
-                          <span className={`${styles.statusBadge} ${getStatusColor(page.status)}`}>
-                            {page.status}
-                          </span>
                         </div>
                         <p className={styles.pageDescription}>{page.description}</p>
                         <div className={styles.pageMeta}>
+                          <span className={`${styles.statusBadge} ${getStatusColor(page.status)}`}>
+                            {page.status}
+                          </span>
                           <span className={`${styles.appTypeBadge} ${getAppTypeColor(page.appType)}`}>
                             {page.appType}
                           </span>
                         </div>
                       </div>
+                    </div>
+                    <div className={styles.listCardActions}>
+                      <button
+                        className={styles.actionButton}
+                        onClick={(e) => handleDetailClick(e, page)}
+                        title="View Details"
+                      >
+                        <IconEye />
+                        <span>Detail</span>
+                      </button>
+                      <button
+                        className={`${styles.actionButton} ${page.status === 'Available' && page.enabled ? styles.actionButtonPrimary : styles.actionButtonDisabled}`}
+                        onClick={(e) => handleOpenClick(e, page)}
+                        disabled={page.status !== 'Available' || !page.enabled}
+                        title="Open App"
+                      >
+                        <IconExternalLink />
+                        <span>Open</span>
+                      </button>
                     </div>
                   </div>
                 )
@@ -261,26 +438,55 @@ export function Library() {
       )
     }
 
-    // Show category list
+    // Show category list with App Type and App Categories sections
     const categoryList = categories.filter((cat) => cat !== 'All')
     return (
-      <div className={styles.categoriesList}>
-        {categoryList.map((category) => {
-          const categoryApps = allPages.filter((page) => page.category === category)
-          return (
-            <div
-              key={category}
-              className={styles.categoryCard}
-              onClick={() => handleCategoryClick(category)}
-            >
-              <div className={styles.categoryCardContent}>
-                <h3 className={styles.categoryCardTitle}>{category}</h3>
-                <p className={styles.categoryCardCount}>{categoryApps.length} app{categoryApps.length !== 1 ? 's' : ''}</p>
-              </div>
-              <IconChevronRight className={styles.categoryCardArrow} />
-            </div>
-          )
-        })}
+      <div className={styles.categoriesContent}>
+        {/* App Type Section */}
+        <div className={styles.filterSection}>
+          <h2 className={styles.filterSectionTitle}>App Type</h2>
+          <div className={styles.filterOptions}>
+            {['In use app', 'Integrated', 'Open source'].map((type) => {
+              const TypeIcon = getAppTypeIcon(type)
+              const typeApps = allPages.filter((page) => page.appType === type)
+              return (
+                <div
+                  key={type}
+                  className={styles.filterOption}
+                  onClick={() => handleAppTypeClick(type)}
+                >
+                  <TypeIcon className={styles.filterOptionIcon} />
+                  <span className={styles.filterOptionText}>{type}</span>
+                  <span className={styles.filterOptionCount}>{typeApps.length}</span>
+                  <IconChevronRight className={styles.filterOptionArrow} />
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* App Categories Section */}
+        <div className={styles.filterSection}>
+          <h2 className={styles.filterSectionTitle}>App Categories</h2>
+          <div className={styles.filterOptions}>
+            {categoryList.map((category) => {
+              const CategoryIcon = getCategoryIcon(category)
+              const categoryApps = allPages.filter((page) => page.category === category)
+              return (
+                <div
+                  key={category}
+                  className={styles.filterOption}
+                  onClick={() => handleCategoryClick(category)}
+                >
+                  <CategoryIcon className={styles.filterOptionIcon} />
+                  <span className={styles.filterOptionText}>{category}</span>
+                  <span className={styles.filterOptionCount}>{categoryApps.length}</span>
+                  <IconChevronRight className={styles.filterOptionArrow} />
+                </div>
+              )
+            })}
+          </div>
+        </div>
       </div>
     )
   }
@@ -303,21 +509,20 @@ export function Library() {
             <div
               key={page.id}
               className={`${styles.listCard} ${page.featured ? styles.featured : ''}`}
-              onClick={() => handleCardClick(page)}
             >
-              <div className={styles.listCardLeft}>
+              <div className={styles.listCardLeft} onClick={() => handleCardClick(page)}>
                 <div className={styles.pageAvatar}>
                   <Icon />
                 </div>
                 <div className={styles.listCardInfo}>
                   <div className={styles.pageHeader}>
                     <h3 className={styles.pageName}>{page.name}</h3>
-                    <span className={`${styles.statusBadge} ${getStatusColor(page.status)}`}>
-                      {page.status}
-                    </span>
                   </div>
                   <p className={styles.pageDescription}>{page.description}</p>
                   <div className={styles.pageMeta}>
+                    <span className={`${styles.statusBadge} ${getStatusColor(page.status)}`}>
+                      {page.status}
+                    </span>
                     <span className={`${styles.appTypeBadge} ${getAppTypeColor(page.appType)}`}>
                       {page.appType}
                     </span>
@@ -329,6 +534,25 @@ export function Library() {
                     )}
                   </div>
                 </div>
+              </div>
+              <div className={styles.listCardActions}>
+                <button
+                  className={styles.actionButton}
+                  onClick={(e) => handleDetailClick(e, page)}
+                  title="View Details"
+                >
+                  <IconEye />
+                  <span>Detail</span>
+                </button>
+                <button
+                  className={`${styles.actionButton} ${page.status === 'Available' && page.enabled ? styles.actionButtonPrimary : styles.actionButtonDisabled}`}
+                  onClick={(e) => handleOpenClick(e, page)}
+                  disabled={page.status !== 'Available' || !page.enabled}
+                  title="Open App"
+                >
+                  <IconExternalLink />
+                  <span>Open</span>
+                </button>
               </div>
             </div>
           )
@@ -348,6 +572,7 @@ export function Library() {
             onClick={() => {
               setSection(sec)
               setSelectedCategory(null)
+              setSelectedAppType(null)
             }}
           >
             {sec}

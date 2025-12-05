@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useNavigation } from '@/contexts/NavigationContext'
 import { allPages, categories, searchPages, type PageInfo } from '@/data/pages'
-import { IconChevronLeft, IconPlus, IconTrash, IconEdit, IconSearch, IconFilter, IconX } from '@/components/Icons'
+import { IconChevronLeft, IconPlus, IconTrash, IconEdit, IconSearch, IconX, IconFilter } from '@/components/Icons'
 import { getIcon } from '@/utils/iconUtils'
 import styles from './SidebarConfiguration.module.css'
 
@@ -16,6 +16,7 @@ export function SidebarConfiguration() {
     updateCustomSectionLabel,
     removeItemFromSection,
     addItemToSection,
+    reorderSectionItems,
   } = useNavigation()
 
   // Safety check
@@ -30,7 +31,10 @@ export function SidebarConfiguration() {
   const [addItemModalOpen, setAddItemModalOpen] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('All')
-  const [showCategoryFilter, setShowCategoryFilter] = useState(false)
+  const [selectedAppType, setSelectedAppType] = useState('All')
+  const [showFilters, setShowFilters] = useState(false)
+  const [draggedItemId, setDraggedItemId] = useState<string | null>(null)
+  const [dragOverItemId, setDragOverItemId] = useState<string | null>(null)
 
   const handleStartEdit = (sectionId: string, currentLabel: string) => {
     setEditingSectionId(sectionId)
@@ -57,13 +61,16 @@ export function SidebarConfiguration() {
     setAddItemModalOpen(sectionId)
     setSearchQuery('')
     setSelectedCategory('All')
+    setSelectedAppType('All')
+    setShowFilters(false)
   }
 
   const handleCloseAddItemModal = () => {
     setAddItemModalOpen(null)
     setSearchQuery('')
     setSelectedCategory('All')
-    setShowCategoryFilter(false)
+    setSelectedAppType('All')
+    setShowFilters(false)
   }
 
   const handleAddItemToSection = (sectionId: string, page: PageInfo) => {
@@ -99,7 +106,31 @@ export function SidebarConfiguration() {
       availablePages = availablePages.filter((page) => page.category === selectedCategory)
     }
 
+    // Apply app type filter
+    if (selectedAppType !== 'All') {
+      availablePages = availablePages.filter((page) => page.appType === selectedAppType)
+    }
+
     return availablePages
+  }
+
+  const appTypes = ['All', 'In use app', 'Integrated', 'Third party', 'Open source', 'Custom']
+
+  const getAppTypeColor = (appType: string) => {
+    switch (appType) {
+      case 'In use app':
+        return styles.appTypeInUse
+      case 'Integrated':
+        return styles.appTypeIntegrated
+      case 'Third party':
+        return styles.appTypeThirdParty
+      case 'Open source':
+        return styles.appTypeOpenSource
+      case 'Custom':
+        return styles.appTypeCustom
+      default:
+        return ''
+    }
   }
 
   return (
@@ -204,8 +235,67 @@ export function SidebarConfiguration() {
                   ) : (
                     section.items.map((item) => {
                       const Icon = getIcon(item.icon)
+                      const isDragging = draggedItemId === item.id
+                      const isDragOver = dragOverItemId === item.id
+                      
                       return (
-                        <div key={item.id} className={styles.sectionItem}>
+                        <div
+                          key={item.id}
+                          className={`${styles.sectionItem} ${isDragging ? styles.dragging : ''} ${isDragOver ? styles.dragOver : ''}`}
+                          draggable
+                          onDragStart={(e) => {
+                            setDraggedItemId(item.id)
+                            e.dataTransfer.effectAllowed = 'move'
+                            e.dataTransfer.setData('text/plain', item.id)
+                          }}
+                          onDragOver={(e) => {
+                            e.preventDefault()
+                            e.dataTransfer.dropEffect = 'move'
+                            if (draggedItemId !== item.id) {
+                              setDragOverItemId(item.id)
+                            }
+                          }}
+                          onDragLeave={() => {
+                            setDragOverItemId(null)
+                          }}
+                          onDrop={(e) => {
+                            e.preventDefault()
+                            const draggedId = draggedItemId
+                            const targetId = item.id
+                            
+                            if (draggedId && draggedId !== targetId) {
+                              const currentItems = [...section.items]
+                              const draggedIndex = currentItems.findIndex((i) => i.id === draggedId)
+                              const targetIndex = currentItems.findIndex((i) => i.id === targetId)
+                              
+                              if (draggedIndex !== -1 && targetIndex !== -1) {
+                                // Remove dragged item from its current position
+                                const [draggedItem] = currentItems.splice(draggedIndex, 1)
+                                // Insert at target position
+                                currentItems.splice(targetIndex, 0, draggedItem)
+                                // Update the section with reordered items
+                                reorderSectionItems(section.id, currentItems)
+                              }
+                            }
+                            
+                            setDraggedItemId(null)
+                            setDragOverItemId(null)
+                          }}
+                          onDragEnd={() => {
+                            setDraggedItemId(null)
+                            setDragOverItemId(null)
+                          }}
+                        >
+                          <div className={styles.dragHandle} title="Drag to reorder">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <circle cx="9" cy="12" r="1" />
+                              <circle cx="9" cy="5" r="1" />
+                              <circle cx="9" cy="19" r="1" />
+                              <circle cx="15" cy="12" r="1" />
+                              <circle cx="15" cy="5" r="1" />
+                              <circle cx="15" cy="19" r="1" />
+                            </svg>
+                          </div>
                           <Icon className={styles.itemIcon} />
                           <span>{item.label}</span>
                           <button
@@ -287,43 +377,70 @@ export function SidebarConfiguration() {
             </div>
 
             <div className={styles.modalBody}>
-              {/* Search */}
-              <div className={styles.searchContainer}>
-                <IconSearch className={styles.searchIcon} />
-                <input
-                  type="text"
-                  placeholder="Search pages..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className={styles.searchInput}
-                />
-              </div>
-
-              {/* Category Filter */}
-              <div className={styles.filterSection}>
+              {/* Search and Filter Row */}
+              <div className={styles.searchFilterRow}>
+                <div className={styles.searchContainer}>
+                  <IconSearch className={styles.searchIcon} />
+                  <input
+                    type="text"
+                    placeholder="Search pages..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className={styles.searchInput}
+                  />
+                </div>
                 <button
-                  className={`${styles.filterToggle} ${showCategoryFilter ? styles.active : ''}`}
-                  onClick={() => setShowCategoryFilter(!showCategoryFilter)}
+                  className={styles.filterToggleButton}
+                  onClick={() => setShowFilters(!showFilters)}
                 >
                   <IconFilter />
-                  <span>Filter by Category</span>
+                  {(selectedCategory !== 'All' || selectedAppType !== 'All') && (
+                    <span className={styles.filterBadge}>
+                      {(selectedCategory !== 'All' ? 1 : 0) + (selectedAppType !== 'All' ? 1 : 0)}
+                    </span>
+                  )}
                 </button>
-                {showCategoryFilter && (
-                  <div className={styles.categoryFilters}>
-                    {categories.map((category) => (
-                      <button
-                        key={category}
-                        className={`${styles.categoryTag} ${
-                          selectedCategory === category ? styles.active : ''
-                        }`}
-                        onClick={() => setSelectedCategory(category)}
-                      >
-                        {category}
-                      </button>
-                    ))}
-                  </div>
-                )}
               </div>
+
+              {/* Filters Content */}
+              {showFilters && (
+                <div className={styles.filterContent}>
+                  <div className={styles.filterRow}>
+                    <div className={styles.filterGroup}>
+                      <span className={styles.filterLabel}>Category:</span>
+                      <div className={styles.filterChips}>
+                        {categories.map((category) => (
+                          <button
+                            key={category}
+                            className={`${styles.filterChip} ${
+                              selectedCategory === category ? styles.active : ''
+                            }`}
+                            onClick={() => setSelectedCategory(category)}
+                          >
+                            {category}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className={styles.filterGroup}>
+                      <span className={styles.filterLabel}>App Type:</span>
+                      <div className={styles.filterChips}>
+                        {appTypes.map((appType) => (
+                          <button
+                            key={appType}
+                            className={`${styles.filterChip} ${
+                              selectedAppType === appType ? styles.active : ''
+                            }`}
+                            onClick={() => setSelectedAppType(appType)}
+                          >
+                            {appType}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Pages List */}
               <div className={styles.pagesList}>
@@ -349,6 +466,9 @@ export function SidebarConfiguration() {
                             <p className={styles.pageOptionDescription}>{page.description}</p>
                             <div className={styles.pageOptionMeta}>
                               <span className={styles.pageOptionCategory}>{page.category}</span>
+                              <span className={`${styles.pageOptionAppType} ${getAppTypeColor(page.appType)}`}>
+                                {page.appType}
+                              </span>
                             </div>
                           </div>
                         </div>

@@ -401,35 +401,69 @@
   font-style: italic;
 }
 
-/* Detail Button */
-.detailButton {
+/* Action Buttons */
+.cardActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.listCardActions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.actionButton {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 6px 12px;
+  padding: 8px 16px;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 6px;
   color: var(--text-secondary);
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
-  width: 100%;
-  margin-top: 4px;
+  white-space: nowrap;
 }
 
+.actionButton:hover {
+  background: var(--bg-hover);
+  border-color: var(--primary);
+  color: var(--primary);
+}
 
-.detailButton:hover {
+.actionButtonPrimary {
   background: var(--primary);
   border-color: var(--primary);
   color: white;
 }
 
-.detailButton svg {
-  width: 14px;
-  height: 14px;
+.actionButtonPrimary:hover {
+  background: rgb(29, 78, 216);
+  border-color: rgb(29, 78, 216);
+  color: white;
+}
+
+.actionButtonDisabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.actionButtonDisabled:hover {
+  background: var(--bg);
+  border-color: var(--border);
+  color: var(--text-secondary);
+}
+
+.actionButton svg {
+  width: 16px;
+  height: 16px;
 }
 
 /* Modal */
@@ -632,7 +666,15 @@
   border-radius: 10px;
   padding: 16px;
   transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.listCardLeft {
   cursor: pointer;
+  flex: 1;
 }
 
 .listCard:hover {
@@ -660,7 +702,101 @@
   gap: 8px;
 }
 
-/* Categories List */
+/* Categories Content */
+.categoriesContent {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.filterSection {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.filterSectionTitle {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+}
+
+.filterOptions {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 12px;
+}
+
+.filterOption {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filterOption:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-color: var(--primary);
+  background: var(--bg-hover);
+}
+
+.filterOptionIcon {
+  width: 20px;
+  height: 20px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.filterOption:hover .filterOptionIcon {
+  color: var(--primary);
+}
+
+.filterOptionText {
+  flex: 1;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.filterOptionCount {
+  padding: 4px 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  min-width: 32px;
+  text-align: center;
+}
+
+.filterOption:hover .filterOptionCount {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+}
+
+.filterOptionArrow {
+  width: 18px;
+  height: 18px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+.filterOption:hover .filterOptionArrow {
+  color: var(--primary);
+  opacity: 1;
+}
+
+/* Legacy category card styles (kept for backward compatibility) */
 .categoriesList {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));

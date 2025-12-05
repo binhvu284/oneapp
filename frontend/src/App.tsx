@@ -15,6 +15,8 @@ import { HeaderSetting } from './pages/HeaderSetting'
 import { Library } from './pages/Library'
 import { AppDetail } from './pages/AppDetail'
 import { Notifications } from './pages/Notifications'
+import { OneAppDeveloper } from './pages/OneAppDeveloper'
+import { OneAppData } from './pages/OneAppData'
 import { AuthProvider } from './contexts/AuthContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { LayoutProvider } from './contexts/LayoutContext'
@@ -24,6 +26,8 @@ import { HeaderProvider } from './contexts/HeaderContext'
 
 const pageTitles: Record<string, string> = {
   '/': 'Dashboard',
+  '/oneapp-developer': 'OneApp Developer',
+  '/oneapp-data': 'OneApp Data',
   '/ai': 'AI Assistant',
   '/modules': 'Modules',
   '/settings': 'Settings',
@@ -90,6 +94,8 @@ function AppContent() {
         <Route path="/customization/interface/header" element={<HeaderSetting />} />
         <Route path="/customization/system-admin" element={<SystemAdmin />} />
         <Route path="/customization/system-admin/application-management" element={<ApplicationManagement />} />
+        <Route path="/oneapp-developer" element={<OneAppDeveloper />} />
+        <Route path="/oneapp-data" element={<OneAppData />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>

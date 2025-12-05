@@ -240,6 +240,47 @@
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 6px;
+  cursor: move;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.sectionItem:hover {
+  background: var(--bg-hover);
+  border-color: var(--primary);
+}
+
+.sectionItem.dragging {
+  opacity: 0.5;
+  cursor: grabbing;
+}
+
+.sectionItem.dragOver {
+  border-color: var(--primary);
+  background: rgba(37, 99, 235, 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
+
+.dragHandle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  color: var(--text-secondary);
+  cursor: grab;
+  flex-shrink: 0;
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+}
+
+.dragHandle:active {
+  cursor: grabbing;
+}
+
+.sectionItem:hover .dragHandle {
+  opacity: 1;
 }
 
 .sectionItem .itemIcon {
@@ -409,9 +450,9 @@
 .modalContent {
   background: var(--panel);
   border-radius: 12px;
-  max-width: 700px;
+  max-width: 900px;
   width: 100%;
-  max-height: 80vh;
+  max-height: 85vh;
   display: flex;
   flex-direction: column;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
@@ -465,10 +506,18 @@
   flex: 1;
 }
 
+/* Search and Filter Row */
+.searchFilterRow {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
 /* Search */
 .searchContainer {
   position: relative;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
 }
 
 .searchIcon {
@@ -499,18 +548,13 @@
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
-/* Filter Section */
-.filterSection {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
 
-.filterToggle {
+.filterToggleButton {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 14px;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -519,35 +563,74 @@
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
-  width: fit-content;
+  flex-shrink: 0;
+  min-width: 44px;
 }
 
-.filterToggle:hover {
+.filterToggleButton:hover {
   background: var(--bg-hover);
   border-color: var(--primary);
   color: var(--primary);
 }
 
-.filterToggle.active {
-  background: var(--primary);
-  border-color: var(--primary);
-  color: white;
-}
-
-.filterToggle svg {
+.filterToggleButton svg {
   width: 16px;
   height: 16px;
 }
 
-.categoryFilters {
+.filterBadge {
+  padding: 2px 6px;
+  background: var(--primary);
+  color: white;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  min-width: 18px;
+  text-align: center;
+  line-height: 1;
+}
+
+.filterContent {
+  padding: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-top: 8px;
+}
+
+.filterRow {
   display: flex;
-  gap: 8px;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.filterGroup {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
-.categoryTag {
-  padding: 6px 12px;
-  background: var(--bg);
+.filterLabel {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  min-width: 80px;
+  flex-shrink: 0;
+}
+
+.filterChips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.filterChip {
+  padding: 6px 14px;
+  background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 6px;
   color: var(--text-secondary);
@@ -555,15 +638,16 @@
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
-.categoryTag:hover {
+.filterChip:hover {
   background: var(--bg-hover);
   border-color: var(--primary);
   color: var(--primary);
 }
 
-.categoryTag.active {
+.filterChip.active {
   background: var(--primary);
   border-color: var(--primary);
   color: white;
@@ -661,6 +745,44 @@
   border-radius: 4px;
   font-size: 0.75rem;
   color: var(--text-secondary);
+}
+
+.pageOptionAppType {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.appTypeInUse {
+  background: rgba(37, 99, 235, 0.1);
+  color: rgb(37, 99, 235);
+  border: 1px solid rgba(37, 99, 235, 0.2);
+}
+
+.appTypeIntegrated {
+  background: rgba(139, 92, 246, 0.1);
+  color: rgb(139, 92, 246);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+.appTypeThirdParty {
+  background: rgba(236, 72, 153, 0.1);
+  color: rgb(236, 72, 153);
+  border: 1px solid rgba(236, 72, 153, 0.2);
+}
+
+.appTypeOpenSource {
+  background: rgba(14, 165, 233, 0.1);
+  color: rgb(14, 165, 233);
+  border: 1px solid rgba(14, 165, 233, 0.2);
+}
+
+.appTypeCustom {
+  background: rgba(168, 85, 247, 0.1);
+  color: rgb(168, 85, 247);
+  border: 1px solid rgba(168, 85, 247, 0.2);
 }
 
 .addIcon {

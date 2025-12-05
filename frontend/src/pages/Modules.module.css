@@ -89,3 +89,43 @@
   background-color: var(--accent-hover);
 }
 
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .modules {
+    padding: 0;
+  }
+
+  .modules h1 {
+    font-size: 1.5rem;
+    margin-bottom: 16px;
+  }
+
+  .moduleGrid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .moduleCard {
+    padding: 16px;
+  }
+
+  .moduleCard h3 {
+    font-size: 1.125rem;
+  }
+
+  .moduleCard p {
+    font-size: 0.9rem;
+  }
+
+  .moduleActions {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .actionButton {
+    width: 100%;
+    text-align: center;
+  }
+}
+

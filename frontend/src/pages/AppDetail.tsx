@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { getPageById } from '@/data/pages'
 import { getIcon } from '@/utils/iconUtils'
-import { IconCode, IconChevronLeft } from '@/components/Icons'
+import { IconCode, IconChevronLeft, IconInUse, IconIntegrated, IconOpenSource, IconCore, IconTools, IconCategory, IconSettings } from '@/components/Icons'
 import styles from './AppDetail.module.css'
 
 export function AppDetail() {
@@ -25,6 +25,34 @@ export function AppDetail() {
   }
 
   const Icon = getIcon(app.icon)
+
+  const getAppTypeIcon = (appType: string) => {
+    switch (appType) {
+      case 'In use app':
+        return IconInUse
+      case 'Integrated':
+        return IconIntegrated
+      case 'Open source':
+        return IconOpenSource
+      default:
+        return IconInUse
+    }
+  }
+
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case 'Core':
+        return IconCore
+      case 'Tools':
+        return IconTools
+      case 'System':
+        return IconSettings
+      case 'Customization':
+        return IconCategory
+      default:
+        return IconCategory
+    }
+  }
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A'
@@ -60,20 +88,38 @@ export function AppDetail() {
       </button>
 
       <div className={styles.header}>
-        <div className={styles.appIcon}>
-          <Icon />
+        <div className={styles.headerLeft}>
+          <div className={styles.appIcon}>
+            <Icon />
+          </div>
+          <div className={styles.headerInfo}>
+            <h1 className={styles.appName}>{app.name}</h1>
+            <p className={styles.appDescription}>{app.description}</p>
+          </div>
         </div>
-        <div className={styles.headerInfo}>
-          <h1 className={styles.appName}>{app.name}</h1>
-          <p className={styles.appDescription}>{app.description}</p>
+        <div className={styles.headerActions}>
+          {app.status === 'Available' && app.enabled ? (
+            <button className={styles.headerButton} onClick={handleOpenApp}>
+              Open App
+            </button>
+          ) : (
+            <button className={styles.headerButtonDisabled} disabled>
+              {app.status === 'Coming soon' ? 'Coming Soon' : 'Unavailable'}
+            </button>
+          )}
+          {app.appType === 'Open source' && (
+            <button
+              className={app.sourceCodeUrl ? styles.headerButtonSecondary : styles.headerButtonSecondaryDisabled}
+              onClick={handleDownloadSource}
+              disabled={!app.sourceCodeUrl}
+              title={app.sourceCodeUrl ? 'Download Source Code' : 'Source code URL not available'}
+            >
+              <IconCode />
+              <span>Download Source</span>
+            </button>
+          )}
         </div>
       </div>
-
-      {app.image && (
-        <div className={styles.appImageContainer}>
-          <img src={app.image} alt={app.name} className={styles.appImage} />
-        </div>
-      )}
 
       <div className={styles.content}>
         <div className={styles.mainContent}>
@@ -82,18 +128,58 @@ export function AppDetail() {
             <p className={styles.sectionText}>{app.description}</p>
           </div>
 
-          {app.tags.length > 0 && (
-            <div className={styles.section}>
-              <h2 className={styles.sectionTitle}>Tags</h2>
-              <div className={styles.tags}>
-                {app.tags.map((tag) => (
-                  <span key={tag} className={styles.tag}>
-                    {tag}
-                  </span>
-                ))}
+          {/* App Image Section */}
+          <div className={styles.section}>
+            <h2 className={styles.sectionTitle}>App Image</h2>
+            {app.image ? (
+              <div className={styles.appImageContainer}>
+                <img src={app.image} alt={app.name} className={styles.appImage} />
+              </div>
+            ) : (
+              <div className={styles.appImagePlaceholder}>
+                <div className={styles.appImagePlaceholderIcon}>
+                  <Icon />
+                </div>
+                <p className={styles.appImagePlaceholderText}>No image available</p>
+              </div>
+            )}
+          </div>
+
+          {/* App Type Section */}
+          <div className={styles.section}>
+            <h2 className={styles.sectionTitle}>App Type</h2>
+            <div className={styles.infoList}>
+              <div className={`${styles.infoItemRow} ${styles.active}`}>
+                {(() => {
+                  const TypeIcon = getAppTypeIcon(app.appType)
+                  return (
+                    <>
+                      <TypeIcon className={styles.infoIcon} />
+                      <span className={styles.infoText}>{app.appType}</span>
+                    </>
+                  )
+                })()}
               </div>
             </div>
-          )}
+          </div>
+
+          {/* App Categories Section */}
+          <div className={styles.section}>
+            <h2 className={styles.sectionTitle}>App Categories</h2>
+            <div className={styles.infoList}>
+              <div className={`${styles.infoItemRow} ${styles.active}`}>
+                {(() => {
+                  const CategoryIcon = getCategoryIcon(app.category)
+                  return (
+                    <>
+                      <CategoryIcon className={styles.infoIcon} />
+                      <span className={styles.infoText}>{app.category}</span>
+                    </>
+                  )
+                })()}
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className={styles.sidebar}>
@@ -155,24 +241,6 @@ export function AppDetail() {
             </div>
           </div>
 
-          <div className={styles.actions}>
-            {app.status === 'Available' && app.enabled ? (
-              <button className={styles.primaryButton} onClick={handleOpenApp}>
-                Open App
-              </button>
-            ) : (
-              <button className={styles.primaryButtonDisabled} disabled>
-                {app.status === 'Coming soon' ? 'Coming Soon' : 'Unavailable'}
-              </button>
-            )}
-
-            {app.sourceCodeUrl && (
-              <button className={styles.secondaryButton} onClick={handleDownloadSource}>
-                <IconCode />
-                <span>Download Source Code</span>
-              </button>
-            )}
-          </div>
         </div>
       </div>
     </div>
