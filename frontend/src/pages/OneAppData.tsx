@@ -9,7 +9,6 @@ import {
   IconXCircle,
   IconAPI,
   IconExternalLink,
-  IconEdit,
   IconServer,
   IconChevronDown,
   IconChevronUp,

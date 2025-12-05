@@ -161,7 +161,7 @@ export function OneAppDeveloper() {
     setShowStatusModal(true)
   }
 
-  const handleChangeStatus = (newStatus: 'Available' | 'Inactive' | 'Coming soon') => {
+  const handleChangeStatus = (newStatus: 'Available' | 'Unavailable' | 'Coming soon') => {
     if (appToChangeStatus) {
       console.log(`Change ${appToChangeStatus.name} status to ${newStatus}`)
       // TODO: Implement status change functionality
@@ -241,17 +241,6 @@ export function OneAppDeveloper() {
         return IconCategory
       default:
         return IconCategory
-    }
-  }
-
-  const handleEdit = (app: PageInfo) => {
-    setSelectedApp(app)
-    setShowAppDetailModal(true)
-  }
-
-  const handleDelete = (appId: string) => {
-    if (window.confirm('Are you sure you want to delete this app?')) {
-      console.log('Delete app:', appId)
     }
   }
 
@@ -1330,12 +1319,12 @@ export function OneAppDeveloper() {
                   </p>
                 </button>
                 <button
-                  className={`${styles.statusOption} ${appToChangeStatus.status === 'Inactive' ? styles.active : ''}`}
-                  onClick={() => handleChangeStatus('Inactive')}
+                  className={`${styles.statusOption} ${appToChangeStatus.status === 'Unavailable' ? styles.active : ''}`}
+                  onClick={() => handleChangeStatus('Unavailable')}
                 >
                   <div className={styles.statusOptionHeader}>
                     <span className={styles.statusOptionTitle}>Inactive</span>
-                    {appToChangeStatus.status === 'Inactive' && (
+                    {appToChangeStatus.status === 'Unavailable' && (
                       <IconCheckCircle className={styles.statusOptionCheck} />
                     )}
                   </div>
