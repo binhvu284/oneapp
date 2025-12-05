@@ -14,6 +14,12 @@ import {
   IconNavigation,
   IconUser,
   IconLogout,
+  IconAPI,
+  IconChess,
+  IconShield,
+  IconBriefcase,
+  IconLanguage,
+  IconLibrary,
 } from '@/components/Icons'
 
 const iconMap: Record<string, React.ComponentType<React.SVGProps<SVGSVGElement>>> = {
@@ -31,6 +37,12 @@ const iconMap: Record<string, React.ComponentType<React.SVGProps<SVGSVGElement>>
   IconNavigation,
   IconUser,
   IconLogout,
+  IconAPI,
+  IconChess,
+  IconShield,
+  IconBriefcase,
+  IconLanguage,
+  IconLibrary,
 }
 
 export function getIcon(iconName: string): React.ComponentType<React.SVGProps<SVGSVGElement>> {

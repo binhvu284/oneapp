@@ -1,33 +1,16 @@
 import { useState, useEffect } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { 
-  IconDashboard, 
-  IconAI, 
-  IconModules, 
-  IconSettings, 
   IconChevronLeft, 
   IconChevronRight,
   IconChevronDown,
   IconChevronUp,
   IconInterface,
   IconSystemAdmin,
-  IconSearch,
-  IconBell
 } from '../Icons'
 import { useNavigation } from '@/contexts/NavigationContext'
+import { getIcon } from '@/utils/iconUtils'
 import styles from './Sidebar.module.css'
-
-// Icon map for dynamic icon loading
-const iconMap: Record<string, React.ComponentType<React.SVGProps<SVGSVGElement>>> = {
-  IconDashboard,
-  IconAI,
-  IconModules,
-  IconSettings,
-  IconSearch,
-  IconBell,
-  IconInterface,
-  IconSystemAdmin,
-}
 
 interface SidebarProps {
   collapsed: boolean
@@ -102,12 +85,10 @@ export function Sidebar({ collapsed, onToggle, onNavigate, onMobileClose, mobile
   }
 
   const toggleCustomization = () => {
-    if (collapsed) return // Don't toggle when collapsed
     setCustomizationOpen(!customizationOpen)
   }
 
   const toggleCustomSection = (sectionId: string) => {
-    if (collapsed) return // Don't toggle when collapsed
     setCustomSectionsOpen((prev) => ({
       ...prev,
       [sectionId]: !prev[sectionId],
@@ -118,12 +99,8 @@ export function Sidebar({ collapsed, onToggle, onNavigate, onMobileClose, mobile
 
   // Get enabled basic items
   const enabledBasicItems = config?.basicItems?.filter((item) => item.enabled) || []
-
-  // Get icon component by name
-  const getIcon = (iconName: string) => {
-    if (!iconName) return IconDashboard
-    return iconMap[iconName] || IconDashboard
-  }
+  const hasEnabledBasicItems = enabledBasicItems.length > 0
+  const hasCustomSections = config?.customSections && config.customSections.length > 0
 
   return (
     <aside 
@@ -154,28 +131,35 @@ export function Sidebar({ collapsed, onToggle, onNavigate, onMobileClose, mobile
       </div>
       <div className={styles.sidebarContent}>
         {/* Basic Navigation Items */}
-        <nav className={styles.nav}>
-          {enabledBasicItems.map((item) => {
-            const Icon = getIcon(item.icon)
-            return (
-              <NavLink
-                key={item.id}
-                to={item.path}
-                onClick={onNavigate}
-                className={({ isActive }) =>
-                  `${styles.navLink} ${isActive ? styles.active : ''}`
-                }
-                title={collapsed ? item.label : undefined}
-              >
-                <Icon />
-                {!collapsed && <span>{item.label}</span>}
-              </NavLink>
-            )
-          })}
-        </nav>
+        {hasEnabledBasicItems && (
+          <nav className={styles.nav}>
+            {enabledBasicItems.map((item) => {
+              const Icon = getIcon(item.icon)
+              return (
+                <NavLink
+                  key={item.id}
+                  to={item.path}
+                  onClick={onNavigate}
+                  className={({ isActive }) =>
+                    `${styles.navLink} ${isActive ? styles.active : ''}`
+                  }
+                  title={collapsed ? item.label : undefined}
+                >
+                  <Icon />
+                  {!collapsed && <span>{item.label}</span>}
+                </NavLink>
+              )
+            })}
+          </nav>
+        )}
+
+        {/* Divider between Basic Navigation and Custom Sections */}
+        {hasEnabledBasicItems && hasCustomSections && (
+          <div className={styles.divider} />
+        )}
 
         {/* Custom Sections - Scrollable */}
-        {config?.customSections && config.customSections.length > 0 && (
+        {hasCustomSections && (
           <div className={styles.customSections}>
             {config.customSections.map((section) => {
               const isOpen = customSectionsOpen[section.id] ?? section.expanded
@@ -213,24 +197,36 @@ export function Sidebar({ collapsed, onToggle, onNavigate, onMobileClose, mobile
                       </nav>
                     </>
                   ) : (
-                    <div className={styles.collapsedSection}>
-                      {section.items.map((item) => {
-                        const Icon = getIcon(item.icon)
-                        return (
-                          <NavLink
-                            key={item.id}
-                            to={item.path}
-                            onClick={onNavigate}
-                            className={({ isActive }) =>
-                              `${styles.sectionLink} ${isActive ? styles.active : ''}`
-                            }
-                            title={item.label}
-                          >
-                            <Icon />
-                          </NavLink>
-                        )
-                      })}
-                    </div>
+                    <>
+                      <button
+                        className={styles.collapsedSectionHeader}
+                        onClick={() => toggleCustomSection(section.id)}
+                        type="button"
+                        title={section.label}
+                      >
+                        <span className={styles.sectionDot} />
+                      </button>
+                      {isOpen && (
+                        <div className={styles.collapsedSection}>
+                          {section.items.map((item) => {
+                            const Icon = getIcon(item.icon)
+                            return (
+                              <NavLink
+                                key={item.id}
+                                to={item.path}
+                                onClick={onNavigate}
+                                className={({ isActive }) =>
+                                  `${styles.sectionLink} ${isActive ? styles.active : ''}`
+                                }
+                                title={item.label}
+                              >
+                                <Icon />
+                              </NavLink>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               )
@@ -272,24 +268,36 @@ export function Sidebar({ collapsed, onToggle, onNavigate, onMobileClose, mobile
               </nav>
             </>
           ) : (
-            <div className={styles.collapsedSection}>
-              {customizationItems.map((item) => {
-                const Icon = item.icon
-                return (
-                  <NavLink
-                    key={item.path}
-                    to={item.path}
-                    onClick={onNavigate}
-                    className={({ isActive }) =>
-                      `${styles.sectionLink} ${isActive ? styles.active : ''}`
-                    }
-                    title={item.label}
-                  >
-                    <Icon />
-                  </NavLink>
-                )
-              })}
-            </div>
+            <>
+              <button
+                className={`${styles.collapsedSectionHeader} ${styles.customizationHeader}`}
+                onClick={toggleCustomization}
+                type="button"
+                title="Customization"
+              >
+                {customizationOpen ? <IconChevronUp /> : <IconChevronDown />}
+              </button>
+              {customizationOpen && (
+                <div className={styles.collapsedSection}>
+                  {customizationItems.map((item) => {
+                    const Icon = item.icon
+                    return (
+                      <NavLink
+                        key={item.path}
+                        to={item.path}
+                        onClick={onNavigate}
+                        className={({ isActive }) =>
+                          `${styles.sectionLink} ${isActive ? styles.active : ''}`
+                        }
+                        title={item.label}
+                      >
+                        <Icon />
+                      </NavLink>
+                    )
+                  })}
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

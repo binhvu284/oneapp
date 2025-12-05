@@ -1,10 +1,26 @@
-import { IconSettings, IconUser, IconSystemAdmin, IconAnalytics } from '@/components/Icons'
+import { useNavigate } from 'react-router-dom'
+import { IconSettings, IconUser, IconSystemAdmin, IconAnalytics, IconApplicationManagement } from '@/components/Icons'
 import styles from './SystemAdmin.module.css'
 
 export function SystemAdmin() {
+  const navigate = useNavigate()
+
   return (
     <div className={styles.systemAdmin}>
       <div className={styles.content}>
+        <div className={styles.section} onClick={() => navigate('/customization/system-admin/application-management')}>
+          <div className={styles.sectionHeader}>
+            <div className={styles.iconWrapper}>
+              <IconApplicationManagement />
+            </div>
+            <div className={styles.sectionContent}>
+              <h2>Application Management</h2>
+              <p className={styles.description}>
+                Manage, edit, delete, and create all pages and applications that interact with this project.
+              </p>
+            </div>
+          </div>
+        </div>
         <div className={styles.section}>
           <div className={styles.sectionHeader}>
             <div className={styles.iconWrapper}>

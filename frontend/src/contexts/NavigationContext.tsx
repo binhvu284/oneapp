@@ -37,11 +37,8 @@ const NavigationContext = createContext<NavigationContextType | undefined>(undef
 
 const DEFAULT_BASIC_ITEMS: NavigationItem[] = [
   { id: 'dashboard', path: '/', label: 'Dashboard', icon: 'IconDashboard', enabled: true },
-  { id: 'search', path: '/search', label: 'Search', icon: 'IconSearch', enabled: false },
-  { id: 'notifications', path: '/notifications', label: 'Notifications', icon: 'IconBell', enabled: false },
-  { id: 'ai', path: '/ai', label: 'AI Assistant', icon: 'IconAI', enabled: true },
-  { id: 'modules', path: '/modules', label: 'Modules', icon: 'IconModules', enabled: true },
-  { id: 'settings', path: '/settings', label: 'Settings', icon: 'IconSettings', enabled: true },
+  { id: 'notifications', path: '/notifications', label: 'Notification', icon: 'IconBell', enabled: false },
+  { id: 'library', path: '/library', label: 'OneLibrary', icon: 'IconLibrary', enabled: false },
 ]
 
 export function NavigationProvider({ children }: { children: ReactNode }) {
@@ -53,7 +50,24 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
           const parsed = JSON.parse(saved)
           // Validate the parsed data
           if (parsed && Array.isArray(parsed.basicItems) && Array.isArray(parsed.customSections)) {
-            return parsed
+            // Only allow Dashboard, Notification, OneLibrary - filter out any other items
+            const validItemIds = ['dashboard', 'notifications', 'library']
+            const validBasicItems = parsed.basicItems.filter((item: NavigationItem) =>
+              validItemIds.includes(item.id)
+            )
+            
+            // If we have invalid items or missing items, reset to default
+            if (validBasicItems.length !== 3 || validItemIds.some(id => !validBasicItems.find((item: NavigationItem) => item.id === id))) {
+              return {
+                basicItems: DEFAULT_BASIC_ITEMS,
+                customSections: parsed.customSections || [],
+              }
+            }
+            
+            return {
+              basicItems: validBasicItems,
+              customSections: parsed.customSections || [],
+            }
           }
         }
       }
@@ -67,7 +81,22 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
     }
   })
 
+  // Validate and clean up config on mount and when config changes
   useEffect(() => {
+    const validItemIds = ['dashboard', 'notifications', 'library']
+    const hasInvalidItems = config.basicItems.some((item) => !validItemIds.includes(item.id))
+    const missingItems = validItemIds.filter((id) => !config.basicItems.find((item) => item.id === id))
+    
+    if (hasInvalidItems || missingItems.length > 0) {
+      // Reset to default if invalid
+      setConfig({
+        basicItems: DEFAULT_BASIC_ITEMS,
+        customSections: config.customSections,
+      })
+      return
+    }
+    
+    // Save to localStorage
     try {
       if (typeof window !== 'undefined' && config) {
         localStorage.setItem('oneapp_navigation_config', JSON.stringify(config))
@@ -79,12 +108,22 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
   }, [config])
 
   const toggleBasicItem = (id: string) => {
-    setConfig((prev) => ({
-      ...prev,
-      basicItems: prev.basicItems.map((item) =>
-        item.id === id ? { ...item, enabled: !item.enabled } : item
-      ),
-    }))
+    setConfig((prev) => {
+      const enabledCount = prev.basicItems.filter((item) => item.enabled).length
+      const item = prev.basicItems.find((i) => i.id === id)
+      
+      // Check if we're trying to enable and already have max 3 enabled
+      if (!item?.enabled && enabledCount >= 3) {
+        return prev // Don't allow more than 3 enabled items
+      }
+
+      return {
+        ...prev,
+        basicItems: prev.basicItems.map((item) =>
+          item.id === id ? { ...item, enabled: !item.enabled } : item
+        ),
+      }
+    })
   }
 
   const addCustomSection = (label: string) => {

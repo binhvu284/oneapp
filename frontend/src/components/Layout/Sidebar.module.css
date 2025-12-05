@@ -180,6 +180,14 @@
   overflow: visible; /* Don't scroll basic nav */
 }
 
+/* Divider */
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 8px 12px;
+  flex-shrink: 0;
+}
+
 /* Custom Sections - Scrollable area between basic nav and customization */
 .customSections {
   flex: 1;
@@ -191,6 +199,8 @@
   flex-direction: column;
   gap: 4px;
   -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+  /* Ensure scrolling works properly */
+  max-height: 100%;
 }
 
 .customSections::-webkit-scrollbar {
@@ -213,6 +223,9 @@
 
 .customSection {
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .sidebar.collapsed .nav {
@@ -385,19 +398,42 @@
   flex-direction: column;
   gap: 2px;
   padding: 0;
-  margin-left: 12px;
+  margin: 0;
   max-height: 0;
   overflow: hidden;
   opacity: 0;
   transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
               opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              padding 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+              padding 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              margin 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sectionContent.open {
-  max-height: 200px;
+  max-height: none; /* Remove height limit for custom sections */
   opacity: 1;
   padding: 4px 0 8px 0;
+  margin-left: 12px;
+}
+
+/* For customization section, keep max-height limit */
+.customizationSection .sectionContent.open {
+  max-height: 200px; /* Keep limit for customization section */
+}
+
+/* Ensure custom sections can expand fully when open */
+.customSections .sectionContent {
+  max-height: 0 !important; /* Keep closed state at 0 */
+  margin: 0 !important; /* No margin when closed */
+  padding: 0 !important; /* No padding when closed */
+  gap: 0 !important; /* No gap when closed */
+}
+
+.customSections .sectionContent.open {
+  max-height: none !important; /* Allow unlimited height in custom sections when open */
+  overflow: visible !important; /* Allow content to flow naturally */
+  margin-left: 12px !important; /* Add margin only when open */
+  padding: 4px 0 8px 0 !important; /* Add padding only when open */
+  gap: 2px !important; /* Add gap only when open */
 }
 
 .sectionLink {
@@ -447,11 +483,64 @@
   color: var(--primary);
 }
 
+/* Collapsed Section Header (Dot Icon) */
+.collapsedSectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 8px 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  margin: 4px 0;
+}
+
+.collapsedSectionHeader:hover {
+  opacity: 0.8;
+}
+
+.sectionDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-secondary);
+  opacity: 0.6;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.collapsedSectionHeader:hover .sectionDot {
+  opacity: 1;
+  background: var(--primary);
+  transform: scale(1.2);
+}
+
+/* Customization Section Header - Arrow Icon */
+.collapsedSectionHeader.customizationHeader {
+  padding: 10px 0;
+}
+
+.collapsedSectionHeader.customizationHeader svg {
+  width: 16px;
+  height: 16px;
+  color: var(--text-secondary);
+  opacity: 0.6;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.collapsedSectionHeader.customizationHeader:hover svg {
+  opacity: 1;
+  color: var(--primary);
+  transform: scale(1.1);
+}
+
 .collapsedSection {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 8px 0;
+  padding: 4px 0;
+  margin-left: 0;
 }
 
 .collapsedSection .sectionLink {

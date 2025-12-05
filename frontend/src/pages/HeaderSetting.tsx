@@ -1,220 +1,258 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useNavigation } from '@/contexts/NavigationContext'
-import { IconChevronLeft, IconPlus, IconTrash, IconEdit } from '@/components/Icons'
+import { useHeader, type DisplayType } from '@/contexts/HeaderContext'
+import { IconChevronLeft } from '@/components/Icons'
 import { getIcon } from '@/utils/iconUtils'
-import styles from './SidebarConfiguration.module.css' // Reuse same styles
+import styles from './HeaderSetting.module.css'
 
 export function HeaderSetting() {
   const navigate = useNavigate()
   const {
     config,
-    toggleBasicItem,
-    addCustomSection,
-    deleteCustomSection,
-    updateCustomSectionLabel,
-    removeItemFromSection,
-  } = useNavigation()
+    toggleItem,
+    updateItemDisplayType,
+    updateToggleValues,
+    updateDropdownValues,
+    updateNavigationPath,
+  } = useHeader()
 
-  const [editingSectionId, setEditingSectionId] = useState<string | null>(null)
-  const [editingLabel, setEditingLabel] = useState('')
-  const [newSectionLabel, setNewSectionLabel] = useState('')
-  const [showAddSection, setShowAddSection] = useState(false)
+  const [editingDropdown, setEditingDropdown] = useState<string | null>(null)
 
-  // Safety check
-  if (!config) {
-    return <div>Loading...</div>
-  }
+  const enabledCount = config.items.filter((item) => item.enabled).length
+  const maxReached = enabledCount >= 2
 
-  const handleStartEdit = (sectionId: string, currentLabel: string) => {
-    setEditingSectionId(sectionId)
-    setEditingLabel(currentLabel)
-  }
-
-  const handleSaveEdit = (sectionId: string) => {
-    if (editingLabel.trim()) {
-      updateCustomSectionLabel(sectionId, editingLabel.trim())
+  const handleToggleChange = (id: string, value: string) => {
+    const item = config.items.find((i) => i.id === id)
+    if (item?.toggleValues) {
+      updateToggleValues(
+        id,
+        item.toggleValues.value1,
+        item.toggleValues.value2,
+        value
+      )
     }
-    setEditingSectionId(null)
-    setEditingLabel('')
   }
 
-  const handleAddSection = () => {
-    if (newSectionLabel.trim()) {
-      addCustomSection(newSectionLabel.trim())
-      setNewSectionLabel('')
-      setShowAddSection(false)
+  const handleDropdownAdd = (id: string, value: string) => {
+    const item = config.items.find((i) => i.id === id)
+    if (item?.dropdownValues && value.trim()) {
+      updateDropdownValues(id, [...item.dropdownValues, value.trim()])
+    }
+  }
+
+  const handleDropdownRemove = (id: string, value: string) => {
+    const item = config.items.find((i) => i.id === id)
+    if (item?.dropdownValues) {
+      updateDropdownValues(
+        id,
+        item.dropdownValues.filter((v) => v !== value)
+      )
     }
   }
 
   return (
-    <div className={styles.sidebarConfig}>
+    <div className={styles.headerSetting}>
       <button className={styles.backButton} onClick={() => navigate('/customization/interface')}>
         <IconChevronLeft />
         <span>Back to Interface</span>
       </button>
 
       <div className={styles.content}>
-        {/* Basic Header Items */}
+        {/* Header Items */}
         <div className={styles.section}>
           <div className={styles.sectionHeader}>
-            <h2>Basic Header Items</h2>
+            <h2>Header Items</h2>
             <p className={styles.description}>
-              Select which basic function pages should appear in the header.
+              Select which items should appear in the header (maximum 2).
             </p>
           </div>
-          <div className={styles.basicItems}>
-            {config.basicItems.map((item) => {
+
+          <div className={styles.itemsList}>
+            {config.items.map((item) => {
               const Icon = getIcon(item.icon)
+              const isMaxReached = maxReached && !item.enabled
+
               return (
-                <label key={item.id} className={styles.checkboxItem}>
-                  <input
-                    type="checkbox"
-                    checked={item.enabled}
-                    onChange={() => toggleBasicItem(item.id)}
-                  />
-                  <Icon className={styles.itemIcon} />
-                  <span>{item.label}</span>
-                </label>
+                <div key={item.id} className={styles.headerItem}>
+                  <div className={styles.itemHeader}>
+                    <label className={`${styles.checkboxItem} ${isMaxReached ? styles.disabled : ''}`}>
+                      <input
+                        type="checkbox"
+                        checked={item.enabled}
+                        onChange={() => toggleItem(item.id)}
+                        disabled={isMaxReached}
+                        title={isMaxReached ? 'Maximum 2 items can be enabled' : ''}
+                      />
+                      <Icon className={styles.itemIcon} />
+                      <span className={styles.itemLabel}>{item.label}</span>
+                    </label>
+                  </div>
+
+                  {item.enabled && (
+                    <div className={styles.displayTypeSection}>
+                      <label className={styles.displayTypeLabel}>
+                        Display Type:
+                        <select
+                          value={item.displayType}
+                          onChange={(e) => {
+                            const newType = e.target.value as DisplayType
+                            // Prevent setting Toggle if locked
+                            if (newType === 'Toggle' && item.lockToggle) {
+                              return
+                            }
+                            updateItemDisplayType(item.id, newType)
+                          }}
+                          className={styles.displayTypeSelect}
+                          disabled={item.lockToggle && item.displayType === 'Toggle'}
+                        >
+                          {!item.lockToggle && <option value="Toggle">Toggle</option>}
+                          <option value="Dropdown">Dropdown</option>
+                          <option value="Navigation">Navigation</option>
+                        </select>
+                      </label>
+
+                      {/* Toggle Configuration */}
+                      {item.displayType === 'Toggle' && item.toggleValues && (
+                        <div className={styles.toggleConfig}>
+                          <div className={styles.toggleValues}>
+                            <label>
+                              Value 1:
+                              <input
+                                type="text"
+                                value={item.toggleValues.value1}
+                                onChange={(e) =>
+                                  updateToggleValues(
+                                    item.id,
+                                    e.target.value,
+                                    item.toggleValues!.value2,
+                                    item.toggleValues!.currentValue
+                                  )
+                                }
+                                className={styles.toggleInput}
+                              />
+                            </label>
+                            <label>
+                              Value 2:
+                              <input
+                                type="text"
+                                value={item.toggleValues.value2}
+                                onChange={(e) =>
+                                  updateToggleValues(
+                                    item.id,
+                                    item.toggleValues!.value1,
+                                    e.target.value,
+                                    item.toggleValues!.currentValue
+                                  )
+                                }
+                                className={styles.toggleInput}
+                              />
+                            </label>
+                          </div>
+                          <div className={styles.toggleCurrent}>
+                            <span>Current Value:</span>
+                            <div className={styles.toggleButtons}>
+                              <button
+                                className={`${styles.toggleButton} ${
+                                  item.toggleValues.currentValue === item.toggleValues.value1
+                                    ? styles.active
+                                    : ''
+                                }`}
+                                onClick={() =>
+                                  handleToggleChange(item.id, item.toggleValues!.value1)
+                                }
+                              >
+                                {item.toggleValues.value1}
+                              </button>
+                              <button
+                                className={`${styles.toggleButton} ${
+                                  item.toggleValues.currentValue === item.toggleValues.value2
+                                    ? styles.active
+                                    : ''
+                                }`}
+                                onClick={() =>
+                                  handleToggleChange(item.id, item.toggleValues!.value2)
+                                }
+                              >
+                                {item.toggleValues.value2}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Dropdown Configuration */}
+                      {item.displayType === 'Dropdown' && item.dropdownValues && (
+                        <div className={styles.dropdownConfig}>
+                          <div className={styles.dropdownValues}>
+                            {item.dropdownValues.map((value, index) => (
+                              <div key={index} className={styles.dropdownValueItem}>
+                                <span>{value}</span>
+                                <button
+                                  onClick={() => handleDropdownRemove(item.id, value)}
+                                  className={styles.removeButton}
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                          {editingDropdown === item.id ? (
+                            <div className={styles.addDropdownForm}>
+                              <input
+                                type="text"
+                                placeholder="Add dropdown value"
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    handleDropdownAdd(item.id, e.currentTarget.value)
+                                    e.currentTarget.value = ''
+                                  } else if (e.key === 'Escape') {
+                                    setEditingDropdown(null)
+                                  }
+                                }}
+                                className={styles.dropdownInput}
+                                autoFocus
+                              />
+                              <button
+                                onClick={() => setEditingDropdown(null)}
+                                className={styles.cancelButton}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setEditingDropdown(item.id)}
+                              className={styles.addButton}
+                            >
+                              + Add Value
+                            </button>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Navigation Configuration */}
+                      {item.displayType === 'Navigation' && (
+                        <div className={styles.navigationConfig}>
+                          <label>
+                            Navigation Path:
+                            <input
+                              type="text"
+                              value={item.navigationPath || ''}
+                              onChange={(e) => updateNavigationPath(item.id, e.target.value)}
+                              placeholder="/path/to/page"
+                              className={styles.navigationInput}
+                            />
+                          </label>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               )
             })}
-          </div>
-        </div>
-
-        {/* Custom Sections */}
-        <div className={styles.section}>
-          <div className={styles.sectionHeader}>
-            <h2>Custom Sections</h2>
-            <p className={styles.description}>
-              Create custom sections to organize your header navigation items.
-            </p>
-          </div>
-
-          <div className={styles.customSectionsContainer}>
-            {config.customSections.map((section) => (
-              <div key={section.id} className={styles.customSection}>
-                <div className={styles.sectionTitleBar}>
-                  {editingSectionId === section.id ? (
-                    <div className={styles.editInputGroup}>
-                      <input
-                        type="text"
-                        value={editingLabel}
-                        onChange={(e) => setEditingLabel(e.target.value)}
-                        onBlur={() => handleSaveEdit(section.id)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            handleSaveEdit(section.id)
-                          } else if (e.key === 'Escape') {
-                            setEditingSectionId(null)
-                            setEditingLabel('')
-                          }
-                        }}
-                        className={styles.editInput}
-                        autoFocus
-                      />
-                    </div>
-                  ) : (
-                    <>
-                      <h3>{section.label}</h3>
-                      <div className={styles.sectionActions}>
-                        <button
-                          className={styles.iconButton}
-                          onClick={() => handleStartEdit(section.id, section.label)}
-                          title="Edit section name"
-                        >
-                          <IconEdit />
-                        </button>
-                        <button
-                          className={styles.iconButton}
-                          onClick={() => deleteCustomSection(section.id)}
-                          title="Delete section"
-                        >
-                          <IconTrash />
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-                <div className={styles.sectionItems}>
-                  {section.items.length === 0 ? (
-                    <p className={styles.emptyMessage}>No items in this section</p>
-                  ) : (
-                    section.items.map((item) => {
-                      const Icon = getIcon(item.icon)
-                      return (
-                        <div key={item.id} className={styles.sectionItem}>
-                          <Icon className={styles.itemIcon} />
-                          <span>{item.label}</span>
-                          <button
-                            className={styles.removeButton}
-                            onClick={() => removeItemFromSection(section.id, item.id)}
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      )
-                    })
-                  )}
-                  <button
-                    className={styles.addItemButton}
-                    onClick={() => {
-                      // TODO: Open modal/dialog to add item
-                      alert('Add item functionality coming soon')
-                    }}
-                  >
-                    <IconPlus />
-                    <span>Add Item</span>
-                  </button>
-                </div>
-              </div>
-            ))}
-
-            {showAddSection ? (
-              <div className={styles.addSectionForm}>
-                <input
-                  type="text"
-                  value={newSectionLabel}
-                  onChange={(e) => setNewSectionLabel(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      handleAddSection()
-                    } else if (e.key === 'Escape') {
-                      setShowAddSection(false)
-                      setNewSectionLabel('')
-                    }
-                  }}
-                  placeholder="Section name"
-                  className={styles.sectionInput}
-                  autoFocus
-                />
-                <div className={styles.addSectionActions}>
-                  <button onClick={handleAddSection} className={styles.saveButton}>
-                    Add
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowAddSection(false)
-                      setNewSectionLabel('')
-                    }}
-                    className={styles.cancelButton}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <button
-                className={styles.addSectionButton}
-                onClick={() => setShowAddSection(true)}
-              >
-                <IconPlus />
-                <span>Create New Section</span>
-              </button>
-            )}
           </div>
         </div>
       </div>
     </div>
   )
 }
-

@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useNavigation } from '@/contexts/NavigationContext'
-import { IconChevronLeft, IconPlus, IconTrash, IconEdit } from '@/components/Icons'
+import { allPages, categories, searchPages, type PageInfo } from '@/data/pages'
+import { IconChevronLeft, IconPlus, IconTrash, IconEdit, IconSearch, IconFilter, IconX } from '@/components/Icons'
 import { getIcon } from '@/utils/iconUtils'
 import styles from './SidebarConfiguration.module.css'
 
@@ -14,6 +15,7 @@ export function SidebarConfiguration() {
     deleteCustomSection,
     updateCustomSectionLabel,
     removeItemFromSection,
+    addItemToSection,
   } = useNavigation()
 
   // Safety check
@@ -25,6 +27,10 @@ export function SidebarConfiguration() {
   const [editingLabel, setEditingLabel] = useState('')
   const [newSectionLabel, setNewSectionLabel] = useState('')
   const [showAddSection, setShowAddSection] = useState(false)
+  const [addItemModalOpen, setAddItemModalOpen] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState('All')
+  const [showCategoryFilter, setShowCategoryFilter] = useState(false)
 
   const handleStartEdit = (sectionId: string, currentLabel: string) => {
     setEditingSectionId(sectionId)
@@ -47,6 +53,55 @@ export function SidebarConfiguration() {
     }
   }
 
+  const handleOpenAddItemModal = (sectionId: string) => {
+    setAddItemModalOpen(sectionId)
+    setSearchQuery('')
+    setSelectedCategory('All')
+  }
+
+  const handleCloseAddItemModal = () => {
+    setAddItemModalOpen(null)
+    setSearchQuery('')
+    setSelectedCategory('All')
+    setShowCategoryFilter(false)
+  }
+
+  const handleAddItemToSection = (sectionId: string, page: PageInfo) => {
+    addItemToSection(sectionId, {
+      path: page.path,
+      label: page.name,
+      icon: page.icon,
+    })
+    handleCloseAddItemModal()
+  }
+
+  // Get available pages (exclude basic items and pages already in the section)
+  const getAvailablePages = (sectionId: string) => {
+    const section = config.customSections.find((s) => s.id === sectionId)
+    const existingItemPaths = section?.items.map((item) => item.path) || []
+    const basicItemPaths = config.basicItems.map((item) => item.path)
+
+    let availablePages = allPages.filter(
+      (page) =>
+        !basicItemPaths.includes(page.path) &&
+        !existingItemPaths.includes(page.path) &&
+        page.status === 'Available'
+    )
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const searchResults = searchPages(searchQuery)
+      availablePages = availablePages.filter((page) => searchResults.includes(page))
+    }
+
+    // Apply category filter
+    if (selectedCategory !== 'All') {
+      availablePages = availablePages.filter((page) => page.category === selectedCategory)
+    }
+
+    return availablePages
+  }
+
   return (
     <div className={styles.sidebarConfig}>
       <button className={styles.backButton} onClick={() => navigate('/customization/interface')}>
@@ -60,18 +115,26 @@ export function SidebarConfiguration() {
           <div className={styles.sectionHeader}>
             <h2>Basic Navigation Items</h2>
             <p className={styles.description}>
-              Select which basic function pages should appear in the sidebar.
+              Select which basic function pages should appear in the sidebar (maximum 3).
             </p>
           </div>
           <div className={styles.basicItems}>
             {config.basicItems.map((item) => {
               const Icon = getIcon(item.icon)
+              const enabledCount = config.basicItems.filter((i) => i.enabled).length
+              const isMaxReached = enabledCount >= 3 && !item.enabled
+              
               return (
-                <label key={item.id} className={styles.checkboxItem}>
+                <label 
+                  key={item.id} 
+                  className={`${styles.checkboxItem} ${isMaxReached ? styles.disabled : ''}`}
+                  title={isMaxReached ? 'Maximum 3 items can be enabled' : ''}
+                >
                   <input
                     type="checkbox"
                     checked={item.enabled}
                     onChange={() => toggleBasicItem(item.id)}
+                    disabled={isMaxReached}
                   />
                   <Icon className={styles.itemIcon} />
                   <span>{item.label}</span>
@@ -157,10 +220,7 @@ export function SidebarConfiguration() {
                   )}
                   <button
                     className={styles.addItemButton}
-                    onClick={() => {
-                      // TODO: Open modal/dialog to add item
-                      alert('Add item functionality coming soon')
-                    }}
+                    onClick={() => handleOpenAddItemModal(section.id)}
                   >
                     <IconPlus />
                     <span>Add Item</span>
@@ -214,6 +274,94 @@ export function SidebarConfiguration() {
           </div>
         </div>
       </div>
+
+      {/* Add Item Modal */}
+      {addItemModalOpen && (
+        <div className={styles.modalOverlay} onClick={handleCloseAddItemModal}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h2>Add Page to Section</h2>
+              <button className={styles.modalClose} onClick={handleCloseAddItemModal}>
+                <IconX />
+              </button>
+            </div>
+
+            <div className={styles.modalBody}>
+              {/* Search */}
+              <div className={styles.searchContainer}>
+                <IconSearch className={styles.searchIcon} />
+                <input
+                  type="text"
+                  placeholder="Search pages..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className={styles.searchInput}
+                />
+              </div>
+
+              {/* Category Filter */}
+              <div className={styles.filterSection}>
+                <button
+                  className={`${styles.filterToggle} ${showCategoryFilter ? styles.active : ''}`}
+                  onClick={() => setShowCategoryFilter(!showCategoryFilter)}
+                >
+                  <IconFilter />
+                  <span>Filter by Category</span>
+                </button>
+                {showCategoryFilter && (
+                  <div className={styles.categoryFilters}>
+                    {categories.map((category) => (
+                      <button
+                        key={category}
+                        className={`${styles.categoryTag} ${
+                          selectedCategory === category ? styles.active : ''
+                        }`}
+                        onClick={() => setSelectedCategory(category)}
+                      >
+                        {category}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Pages List */}
+              <div className={styles.pagesList}>
+                {getAvailablePages(addItemModalOpen).length === 0 ? (
+                  <div className={styles.emptyState}>
+                    <p>No available pages found.</p>
+                  </div>
+                ) : (
+                  getAvailablePages(addItemModalOpen).map((page) => {
+                    const Icon = getIcon(page.icon)
+                    return (
+                      <div
+                        key={page.id}
+                        className={styles.pageOption}
+                        onClick={() => handleAddItemToSection(addItemModalOpen, page)}
+                      >
+                        <div className={styles.pageOptionLeft}>
+                          <div className={styles.pageOptionIcon}>
+                            <Icon />
+                          </div>
+                          <div className={styles.pageOptionInfo}>
+                            <h3 className={styles.pageOptionName}>{page.name}</h3>
+                            <p className={styles.pageOptionDescription}>{page.description}</p>
+                            <div className={styles.pageOptionMeta}>
+                              <span className={styles.pageOptionCategory}>{page.category}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <IconPlus className={styles.addIcon} />
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
