@@ -633,6 +633,12 @@
   color: var(--text-secondary);
 }
 
+.loadingState {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-secondary);
+}
+
 /* Home Sections */
 .homeSections {
   display: flex;

@@ -1,4 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import api from '@/services/api'
+import JSZip from 'jszip'
 import {
   IconDatabase,
   IconCode,
@@ -15,6 +17,7 @@ import {
   IconMaximize,
   IconMinimize,
 } from '@/components/Icons'
+import { ToastContainer, type Toast } from '@/components/Toast'
 import styles from './OneAppData.module.css'
 
 type DatabaseType = 'oneapp' | 'shared'
@@ -234,6 +237,25 @@ export function OneAppData() {
   const [showApiEditModal, setShowApiEditModal] = useState(false)
   const [expandedTables, setExpandedTables] = useState<Set<string>>(new Set())
   const [isTableModalFullscreen, setIsTableModalFullscreen] = useState(false)
+  const [tableData, setTableData] = useState<Record<string, any[]>>({})
+  const [loadingTableData, setLoadingTableData] = useState<Record<string, boolean>>({})
+  const [toasts, setToasts] = useState<Toast[]>([])
+
+  // Toast helper functions
+  const showToast = (message: string, type: Toast['type'] = 'info', duration?: number) => {
+    setToasts((prev) => {
+      const existingToast = prev.find(t => t.message === message && t.type === type)
+      if (existingToast) {
+        return prev
+      }
+      const id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+      return [...prev, { id, message, type, duration }]
+    })
+  }
+
+  const removeToast = (id: string) => {
+    setToasts((prev) => prev.filter((toast) => toast.id !== id))
+  }
 
   const [sharedDbConfig, setSharedDbConfig] = useState<SharedDatabaseConfig>({
     tool: 'MongoDB Atlas',
@@ -245,6 +267,70 @@ export function OneAppData() {
 
   const currentSchema = activeDatabase === 'oneapp' ? oneAppSchema : sharedSchema
   const currentTables = activeDatabase === 'oneapp' ? oneAppSchema.tables : sharedSchema.tables
+
+  // Fetch table data when OneApp database is active
+  useEffect(() => {
+    if (activeDatabase === 'oneapp') {
+      const fetchTableData = async (tableName: string) => {
+        if (loadingTableData[tableName]) return
+
+        setLoadingTableData(prev => ({ ...prev, [tableName]: true }))
+        try {
+          const response = await api.get(`/oneapp-data/${tableName}`)
+          if (response.data.success) {
+            setTableData(prev => ({
+              ...prev,
+              [tableName]: response.data.data || [],
+            }))
+          }
+        } catch (error) {
+          console.error(`Error fetching ${tableName}:`, error)
+          // Fallback to empty array
+          setTableData(prev => ({
+            ...prev,
+            [tableName]: [],
+          }))
+        } finally {
+          setLoadingTableData(prev => ({ ...prev, [tableName]: false }))
+        }
+      }
+
+      // Fetch data for all OneApp database tables
+      oneAppSchema.tables.forEach(table => {
+        fetchTableData(table.name)
+      })
+    } else {
+      // Clear table data when switching away from OneApp database
+      setTableData({})
+    }
+  }, [activeDatabase])
+
+  // Fetch table data when a table is selected
+  useEffect(() => {
+    if (selectedTable && activeDatabase === 'oneapp' && !tableData[selectedTable]) {
+      const fetchTableData = async () => {
+        setLoadingTableData(prev => ({ ...prev, [selectedTable]: true }))
+        try {
+          const response = await api.get(`/oneapp-data/${selectedTable}`)
+          if (response.data.success) {
+            setTableData(prev => ({
+              ...prev,
+              [selectedTable]: response.data.data || [],
+            }))
+          }
+        } catch (error) {
+          console.error(`Error fetching ${selectedTable}:`, error)
+          setTableData(prev => ({
+            ...prev,
+            [selectedTable]: [],
+          }))
+        } finally {
+          setLoadingTableData(prev => ({ ...prev, [selectedTable]: false }))
+        }
+      }
+      fetchTableData()
+    }
+  }, [selectedTable, activeDatabase])
 
   const generateSQL = (schema: DatabaseSchema): string => {
     let sql = '-- Database Schema\n\n'
@@ -273,24 +359,35 @@ export function OneAppData() {
     URL.revokeObjectURL(url)
   }
 
-  const handleCopySQL = () => {
+  const handleCopySQL = async () => {
     const sql = generateSQL(currentSchema)
-    navigator.clipboard.writeText(sql)
-    // TODO: Show toast notification
+    try {
+      await navigator.clipboard.writeText(sql)
+      showToast('SQL code copied to clipboard', 'success')
+    } catch (error) {
+      console.error('Failed to copy SQL:', error)
+      showToast('Failed to copy SQL code', 'error')
+    }
   }
 
-  const handleDownloadTable = (tableName: string) => {
-    const data = mockTableData[tableName] || []
-    // Convert to CSV format
-    if (data.length === 0) return
-
+  const convertToCSV = (data: any[]): string => {
+    if (data.length === 0) return ''
     const headers = Object.keys(data[0])
     const csvRows = [
       headers.join(','),
       ...data.map((row) => headers.map((header) => JSON.stringify(row[header] || '')).join(',')),
     ]
-    const csv = csvRows.join('\n')
+    return csvRows.join('\n')
+  }
 
+  const handleDownloadTable = (tableName: string) => {
+    const data = activeDatabase === 'oneapp' ? (tableData[tableName] || []) : (mockTableData[tableName] || [])
+    if (data.length === 0) {
+      showToast(`Table "${tableName}" is empty`, 'warning')
+      return
+    }
+
+    const csv = convertToCSV(data)
     const blob = new Blob([csv], { type: 'text/csv' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -300,6 +397,46 @@ export function OneAppData() {
     a.click()
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
+    showToast(`Table "${tableName}" downloaded successfully`, 'success')
+  }
+
+  const handleDownloadAllTables = async () => {
+    if (activeDatabase !== 'oneapp') return
+
+    try {
+      const zip = new JSZip()
+      let hasData = false
+
+      // Add each table as a CSV file to the zip
+      for (const table of currentTables) {
+        const data = tableData[table.name] || []
+        if (data.length > 0) {
+          const csv = convertToCSV(data)
+          zip.file(`${table.name}.csv`, csv)
+          hasData = true
+        }
+      }
+
+      if (!hasData) {
+        showToast('No table data available to download', 'warning')
+        return
+      }
+
+      // Generate zip file
+      const zipBlob = await zip.generateAsync({ type: 'blob' })
+      const url = URL.createObjectURL(zipBlob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'OneApp Data.zip'
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      showToast('All tables downloaded successfully', 'success')
+    } catch (error) {
+      console.error('Error creating zip file:', error)
+      showToast('Failed to download tables', 'error')
+    }
   }
 
   const handleCheckConnection = () => {
@@ -447,7 +584,13 @@ export function OneAppData() {
           {/* OneApp Database Specific: Tables */}
           {activeDatabase === 'oneapp' && (
             <div className={styles.tablesSection}>
-              <h2 className={styles.subsectionTitle}>Tables</h2>
+              <div className={styles.tablesSectionHeader}>
+                <h2 className={styles.subsectionTitle}>Tables</h2>
+                <button className={styles.downloadAllButton} onClick={handleDownloadAllTables}>
+                  <IconDownload />
+                  <span>Download All</span>
+                </button>
+              </div>
               <div className={styles.tablesList}>
                 {currentTables.map((table, idx) => (
                   <div
@@ -460,7 +603,7 @@ export function OneAppData() {
                       <div className={styles.tableListItemInfo}>
                         <h3 className={styles.tableListItemName}>{table.name}</h3>
                         <p className={styles.tableListItemDesc}>
-                          {table.fields.length} fields • {mockTableData[table.name]?.length || 0} records
+                          {table.fields.length} fields • {activeDatabase === 'oneapp' ? (tableData[table.name]?.length || 0) : (mockTableData[table.name]?.length || 0)} records
                         </p>
                       </div>
                     </div>
@@ -578,25 +721,31 @@ export function OneAppData() {
               </div>
               <div className={styles.modalBody}>
                 <div className={styles.tableDataView}>
-                  <table className={styles.dataTable}>
-                    <thead>
-                      <tr>
-                        {mockTableData[selectedTable]?.[0] &&
-                          Object.keys(mockTableData[selectedTable][0]).map((key) => (
-                            <th key={key}>{key}</th>
-                          ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {mockTableData[selectedTable]?.map((row, idx) => (
-                        <tr key={idx}>
-                          {Object.values(row).map((value, cellIdx) => (
-                            <td key={cellIdx}>{String(value)}</td>
-                          ))}
+                  {loadingTableData[selectedTable] ? (
+                    <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                      Loading table data...
+                    </div>
+                  ) : (
+                    <table className={styles.dataTable}>
+                      <thead>
+                        <tr>
+                          {(activeDatabase === 'oneapp' ? tableData[selectedTable] : mockTableData[selectedTable])?.[0] &&
+                            Object.keys((activeDatabase === 'oneapp' ? tableData[selectedTable] : mockTableData[selectedTable])[0]).map((key) => (
+                              <th key={key}>{key}</th>
+                            ))}
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {(activeDatabase === 'oneapp' ? tableData[selectedTable] : mockTableData[selectedTable])?.map((row, idx) => (
+                          <tr key={idx}>
+                            {Object.values(row).map((value, cellIdx) => (
+                              <td key={cellIdx}>{String(value ?? '')}</td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
                 </div>
               </div>
             </div>
@@ -663,6 +812,9 @@ export function OneAppData() {
             </div>
           </div>
         )}
+
+        {/* Toast Notifications */}
+        <ToastContainer toasts={toasts} onClose={removeToast} />
       </div>
     )
   }
@@ -713,6 +865,9 @@ export function OneAppData() {
           </div>
         </div>
       </div>
+
+      {/* Toast Notifications */}
+      <ToastContainer toasts={toasts} onClose={removeToast} />
     </div>
   )
 }

@@ -7,6 +7,9 @@ import { aiRoutes } from './routes/ai'
 import { moduleRoutes } from './routes/modules'
 import { taskRoutes } from './routes/tasks'
 import { healthRoutes } from './routes/health'
+import { categoryRoutes } from './routes/categories'
+import { oneappDataRoutes } from './routes/oneapp-data'
+import { inUseAppRoutes } from './routes/in-use-app'
 
 // Load environment variables
 dotenv.config()
@@ -34,6 +37,9 @@ app.use('/api/auth', authRoutes)
 app.use('/api/ai', aiRoutes)
 app.use('/api/modules', moduleRoutes)
 app.use('/api/tasks', taskRoutes)
+app.use('/api/categories', categoryRoutes)
+app.use('/api/oneapp-data', oneappDataRoutes)
+app.use('/api/in-use-app', inUseAppRoutes)
 
 // Error handling middleware (must be last)
 app.use(errorHandler)

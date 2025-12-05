@@ -12,7 +12,9 @@ import {
   IconInterface,
   IconSystemAdmin,
   IconTheme,
-  IconStorage
+  IconStorage,
+  IconDeveloper,
+  IconDatabase
 } from '../Icons'
 import { getAvatarInitial, getAvatarColor } from '@/utils/avatarUtils'
 import styles from './Header.module.css'
@@ -64,6 +66,12 @@ export function Header({ title, breadcrumbs, mobileMenuOpen, onMobileMenuToggle,
   const iconForRoute = () => {
     if (location.pathname === '/' || location.pathname.startsWith('/dashboard')) {
       return <IconDashboard />
+    }
+    if (location.pathname.startsWith('/oneapp-developer')) {
+      return <IconDeveloper />
+    }
+    if (location.pathname.startsWith('/oneapp-data')) {
+      return <IconDatabase />
     }
     if (location.pathname.startsWith('/ai')) {
       return <IconAI />

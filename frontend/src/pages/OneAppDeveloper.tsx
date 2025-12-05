@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { allPages, categories, type PageInfo } from '@/data/pages'
+import api from '@/services/api'
+import { ToastContainer, type Toast } from '@/components/Toast'
 import {
   IconPlus,
   IconEdit,
@@ -31,10 +33,24 @@ import {
   IconTools,
   IconSettings,
 } from '@/components/Icons'
-import { getIcon } from '@/utils/iconUtils'
+import { getIcon, iconMap } from '@/utils/iconUtils'
 import styles from './OneAppDeveloper.module.css'
 
 type TabType = 'categories' | 'in-use' | 'integrated' | 'open-source'
+
+interface Category {
+  _id: string
+  name: string
+  slug: string
+  description?: string
+  icon?: string
+  color?: string
+  status: string
+  appCount: number
+  order?: number
+  createdAt: string
+  updatedAt: string
+}
 
 interface IntegratedAppConfig {
   apiUrl?: string
@@ -56,9 +72,31 @@ export function OneAppDeveloper() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string>('All')
   const [showAddModal, setShowAddModal] = useState(false)
-  const [editingCategory, setEditingCategory] = useState<string | null>(null)
-  const [newCategoryName, setNewCategoryName] = useState('')
   const [showAddCategory, setShowAddCategory] = useState(false)
+  const [newCategoryName, setNewCategoryName] = useState('')
+  const [dbCategories, setDbCategories] = useState<Category[]>([])
+  const [loadingCategories, setLoadingCategories] = useState(false)
+  const [showCategoryEditModal, setShowCategoryEditModal] = useState(false)
+  const [categoryEditData, setCategoryEditData] = useState<{
+    _id: string
+    name: string
+    slug: string
+    description: string
+    icon: string
+    color: string
+  } | null>(null)
+  const [categoryApps, setCategoryApps] = useState<any[]>([])
+  const [loadingCategoryApps, setLoadingCategoryApps] = useState(false)
+  const [showAddAppDropdown, setShowAddAppDropdown] = useState(false)
+  const [unassignedApps, setUnassignedApps] = useState<any[]>([])
+  const [draggedCategoryId, setDraggedCategoryId] = useState<string | null>(null)
+  const [dragOverCategoryId, setDragOverCategoryId] = useState<string | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
+  const [isReordering, setIsReordering] = useState(false)
+  const [toasts, setToasts] = useState<Toast[]>([])
+  const reorderInProgressRef = useRef(false)
+  const [showDeleteCategoryModal, setShowDeleteCategoryModal] = useState(false)
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null)
   const [selectedApp, setSelectedApp] = useState<PageInfo | null>(null)
   const [showAppDetailModal, setShowAppDetailModal] = useState(false)
   const [openSourceSubTab, setOpenSourceSubTab] = useState<'deployment' | 'source'>('deployment')
@@ -78,7 +116,9 @@ export function OneAppDeveloper() {
     longDescription?: string
     image?: string
     category: string
+    path: string
   } | null>(null)
+  const [pathError, setPathError] = useState<string>('')
 
   // Mock data for integrated apps API configs
   const [integratedConfigs, setIntegratedConfigs] = useState<Record<string, IntegratedAppConfig>>({
@@ -118,6 +158,47 @@ export function OneAppDeveloper() {
       return matchesSearch && matchesCategory
     })
   })()
+
+  // Toast helper functions
+  const showToast = (message: string, type: Toast['type'] = 'info', duration?: number) => {
+    // Prevent duplicate toasts with the same message
+    setToasts((prev) => {
+      // Check if a toast with the same message already exists
+      const existingToast = prev.find(t => t.message === message && t.type === type)
+      if (existingToast) {
+        return prev
+      }
+      const id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+      return [...prev, { id, message, type, duration }]
+    })
+  }
+
+  const removeToast = (id: string) => {
+    setToasts((prev) => prev.filter((toast) => toast.id !== id))
+  }
+
+  // Fetch categories from database
+  useEffect(() => {
+    const fetchCategories = async () => {
+      setLoadingCategories(true)
+      try {
+        const response = await api.get('/categories')
+        if (response.data.success) {
+          setDbCategories(response.data.data || [])
+        }
+      } catch (error) {
+        console.error('Error fetching categories:', error)
+        // Fallback to empty array if API fails
+        setDbCategories([])
+      } finally {
+        setLoadingCategories(false)
+      }
+    }
+
+    if (activeTab === 'categories') {
+      fetchCategories()
+    }
+  }, [activeTab])
 
   // Reset selectedOpenSourceApp when switching away from open-source tab
   useEffect(() => {
@@ -170,23 +251,155 @@ export function OneAppDeveloper() {
     setAppToChangeStatus(null)
   }
 
-  const handleViewDetail = (app: PageInfo) => {
+  const handleViewDetail = async (app: PageInfo) => {
     setSelectedApp(app)
     setIsEditMode(false)
-    setEditFormData({
-      description: app.description,
-      longDescription: app.description, // Using description as long description for now
-      image: app.image || '',
-      category: app.category,
-    })
+    setPathError('')
+    
+    // Fetch actual app data from database if it's an "In use app"
+    if (app.appType === 'In use app') {
+      try {
+        const response = await api.get(`/in-use-app/${app.id}`)
+        if (response.data.success) {
+          const dbApp = response.data.data
+          setEditFormData({
+            description: dbApp.description || app.description,
+            longDescription: dbApp.longDescription || dbApp.description || app.description,
+            image: dbApp.image || app.image || '',
+            category: dbApp.category || app.category,
+            path: dbApp.path || app.path,
+          })
+        } else {
+          // Fallback to app data if database fetch fails
+          setEditFormData({
+            description: app.description,
+            longDescription: app.description,
+            image: app.image || '',
+            category: app.category,
+            path: app.path,
+          })
+        }
+      } catch (error) {
+        console.error('Error fetching app from database:', error)
+        // Fallback to app data if database fetch fails
+        setEditFormData({
+          description: app.description,
+          longDescription: app.description,
+          image: app.image || '',
+          category: app.category,
+          path: app.path,
+        })
+      }
+    } else {
+      // For non "In use app" types, use the app data directly
+      setEditFormData({
+        description: app.description,
+        longDescription: app.description,
+        image: app.image || '',
+        category: app.category,
+        path: app.path,
+      })
+    }
+    
     setShowAppDetailModal(true)
   }
 
-  const handleSaveEdit = () => {
-    if (selectedApp && editFormData) {
-      console.log('Save app changes:', selectedApp.id, editFormData)
-      // TODO: Implement save functionality
-      setIsEditMode(false)
+  const validatePath = async (path: string, currentAppId: string): Promise<string> => {
+    if (!path || !path.trim()) {
+      return 'App URL is required'
+    }
+
+    // Ensure path starts with /
+    const normalizedPath = path.trim().startsWith('/') ? path.trim() : `/${path.trim()}`
+
+    try {
+      // Fetch all apps from database to check for duplicates
+      const dbResponse = await api.get('/in-use-app')
+      if (dbResponse.data.success) {
+        const dbApps = dbResponse.data.data || []
+        const duplicate = dbApps.find(
+          (app: any) => app.path === normalizedPath && app.id !== currentAppId
+        )
+        if (duplicate) {
+          return `This URL is already used by "${duplicate.name}"`
+        }
+      }
+    } catch (error) {
+      console.error('Error validating path:', error)
+      // Continue with validation if API fails
+    }
+
+    // Also check against allPages to catch any other apps that might have this path
+    // This includes Integrated, Open source, and other app types
+    const duplicateInPages = allPages.find(
+      (app) => app.path === normalizedPath && app.id !== currentAppId
+    )
+    if (duplicateInPages) {
+      return `This URL is already used by "${duplicateInPages.name}"`
+    }
+
+    return ''
+  }
+
+  const handlePathChange = async (newPath: string) => {
+    if (!selectedApp || !editFormData) return
+
+    setEditFormData({ ...editFormData, path: newPath })
+    
+    const error = await validatePath(newPath, selectedApp.id)
+    setPathError(error)
+  }
+
+  const handleSaveEdit = async () => {
+    if (!selectedApp || !editFormData) return
+
+    // Validate path
+    if (!editFormData.path || !editFormData.path.trim()) {
+      setPathError('App URL is required')
+      return
+    }
+
+    const pathValidationError = await validatePath(editFormData.path, selectedApp.id)
+    if (pathValidationError) {
+      setPathError(pathValidationError)
+      return
+    }
+
+    try {
+      // Normalize path
+      const normalizedPath = editFormData.path.trim().startsWith('/') 
+        ? editFormData.path.trim() 
+        : `/${editFormData.path.trim()}`
+
+      const updateData: any = {
+        description: editFormData.description,
+        category: editFormData.category,
+        path: normalizedPath,
+      }
+
+      if (editFormData.longDescription !== undefined) {
+        updateData.longDescription = editFormData.longDescription
+      }
+      if (editFormData.image !== undefined) {
+        updateData.image = editFormData.image || null
+      }
+
+      const response = await api.put(`/in-use-app/${selectedApp.id}`, updateData)
+      
+      if (response.data.success) {
+        // Update local state
+        const updatedApp = { ...selectedApp, ...updateData }
+        setSelectedApp(updatedApp)
+        
+        setIsEditMode(false)
+        setPathError('')
+        showToast('App updated successfully', 'success')
+      } else {
+        showToast(response.data.error || 'Failed to update app', 'error')
+      }
+    } catch (error: any) {
+      console.error('Error saving app:', error)
+      showToast(error.response?.data?.error || 'Failed to update app', 'error')
     }
   }
 
@@ -197,8 +410,10 @@ export function OneAppDeveloper() {
         longDescription: selectedApp.description,
         image: selectedApp.image || '',
         category: selectedApp.category,
+        path: selectedApp.path,
       })
     }
+    setPathError('')
     setIsEditMode(false)
   }
 
@@ -292,31 +507,316 @@ export function OneAppDeveloper() {
     })
   }
 
-  const handleAddCategory = () => {
-    if (newCategoryName.trim()) {
-      console.log('Add category:', newCategoryName.trim())
-      setNewCategoryName('')
-      setShowAddCategory(false)
+  const handleAddCategory = async () => {
+    // Prevent adding category if we're currently dragging
+    if (isDragging) {
+      return
+    }
+    // Note: Add category functionality should use a modal similar to edit
+    // For now, keeping simple inline add
+    const categoryName = prompt('Enter category name:')
+    if (!categoryName || !categoryName.trim()) {
+      return
+    }
+
+    try {
+      const response = await api.post('/categories', {
+        name: categoryName.trim(),
+      })
+
+      if (response.data.success) {
+        // Refresh categories list
+        const refreshResponse = await api.get('/categories')
+        if (refreshResponse.data.success) {
+          setDbCategories(refreshResponse.data.data || [])
+        }
+        setShowAddCategory(false)
+        showToast('Category added successfully', 'success')
+      } else {
+        showToast(response.data.error || 'Failed to add category', 'error')
+      }
+    } catch (error: any) {
+      console.error('Error adding category:', error)
+      const errorMessage = error.response?.data?.error || error.message || 'Failed to add category'
+      showToast(errorMessage, 'error')
     }
   }
 
-  const handleEditCategory = (category: string) => {
-    setEditingCategory(category)
-    setNewCategoryName(category)
-  }
-
-  const handleSaveCategory = () => {
-    if (newCategoryName.trim() && editingCategory) {
-      console.log('Update category:', editingCategory, '->', newCategoryName.trim())
-      setEditingCategory(null)
-      setNewCategoryName('')
+  const handleEditCategory = async (category: Category) => {
+    setCategoryEditData({
+      _id: category._id,
+      name: category.name,
+      slug: category.slug,
+      description: category.description || '',
+      icon: category.icon || '',
+      color: category.color || '',
+    })
+    setShowCategoryEditModal(true)
+    
+    // Fetch apps for this category
+    setLoadingCategoryApps(true)
+    try {
+      const appsResponse = await api.get('/in-use-app')
+      if (appsResponse.data.success) {
+        const allApps = appsResponse.data.data || []
+        const categoryAppsList = allApps.filter((app: any) => app.category === category.name)
+        setCategoryApps(categoryAppsList)
+        
+        // Get unassigned apps (apps with empty category or not in any category)
+        const unassigned = allApps.filter((app: any) => !app.category || app.category === '')
+        setUnassignedApps(unassigned)
+      }
+    } catch (error: any) {
+      console.error('Error fetching category apps:', error)
+      showToast('Failed to load apps for this category', 'error')
+    } finally {
+      setLoadingCategoryApps(false)
     }
   }
 
-  const handleDeleteCategory = (category: string) => {
-    if (window.confirm(`Are you sure you want to delete category "${category}"?`)) {
-      console.log('Delete category:', category)
+  const handleSaveCategory = async () => {
+    if (!categoryEditData || !categoryEditData.name.trim()) {
+      showToast('Category name is required', 'error')
+      return
     }
+
+    try {
+      const response = await api.put(`/categories/${categoryEditData._id}`, {
+        name: categoryEditData.name.trim(),
+        slug: categoryEditData.slug.trim(),
+        description: categoryEditData.description || null,
+        icon: categoryEditData.icon || null,
+        color: categoryEditData.color || null,
+      })
+
+      if (response.data.success) {
+        // Refresh categories list
+        const refreshResponse = await api.get('/categories')
+        if (refreshResponse.data.success) {
+          setDbCategories(refreshResponse.data.data || [])
+        }
+        setShowCategoryEditModal(false)
+        setCategoryEditData(null)
+        showToast('Category updated successfully', 'success')
+      } else {
+        showToast(response.data.error || 'Failed to update category', 'error')
+      }
+    } catch (error: any) {
+      console.error('Error updating category:', error)
+      showToast(error.response?.data?.error || 'Failed to update category', 'error')
+    }
+  }
+
+  const handleRemoveAppFromCategory = async (appId: string) => {
+    try {
+      const response = await api.put(`/in-use-app/${appId}`, {
+        category: '',
+      })
+
+      if (response.data.success) {
+        // Refresh category apps
+        const appsResponse = await api.get('/in-use-app')
+        if (appsResponse.data.success) {
+          const allApps = appsResponse.data.data || []
+          const categoryName = categoryEditData?.name || ''
+          const categoryAppsList = allApps.filter((app: any) => app.category === categoryName)
+          setCategoryApps(categoryAppsList)
+          
+          const unassigned = allApps.filter((app: any) => !app.category || app.category === '')
+          setUnassignedApps(unassigned)
+        }
+        
+        // Refresh categories to update appCount
+        const refreshResponse = await api.get('/categories')
+        if (refreshResponse.data.success) {
+          setDbCategories(refreshResponse.data.data || [])
+        }
+        
+        showToast('App removed from category', 'success')
+      } else {
+        showToast(response.data.error || 'Failed to remove app', 'error')
+      }
+    } catch (error: any) {
+      console.error('Error removing app from category:', error)
+      showToast(error.response?.data?.error || 'Failed to remove app', 'error')
+    }
+  }
+
+  const handleAddAppToCategory = async (appId: string) => {
+    if (!categoryEditData) return
+    
+    try {
+      const response = await api.put(`/in-use-app/${appId}`, {
+        category: categoryEditData.name,
+      })
+
+      if (response.data.success) {
+        // Refresh category apps
+        const appsResponse = await api.get('/in-use-app')
+        if (appsResponse.data.success) {
+          const allApps = appsResponse.data.data || []
+          const categoryName = categoryEditData.name
+          const categoryAppsList = allApps.filter((app: any) => app.category === categoryName)
+          setCategoryApps(categoryAppsList)
+          
+          const unassigned = allApps.filter((app: any) => !app.category || app.category === '')
+          setUnassignedApps(unassigned)
+        }
+        
+        // Refresh categories to update appCount
+        const refreshResponse = await api.get('/categories')
+        if (refreshResponse.data.success) {
+          setDbCategories(refreshResponse.data.data || [])
+        }
+        
+        setShowAddAppDropdown(false)
+        showToast('App added to category', 'success')
+      } else {
+        showToast(response.data.error || 'Failed to add app', 'error')
+      }
+    } catch (error: any) {
+      console.error('Error adding app to category:', error)
+      showToast(error.response?.data?.error || 'Failed to add app', 'error')
+    }
+  }
+
+  const handleDeleteCategoryClick = (category: Category) => {
+    setCategoryToDelete(category)
+    setShowDeleteCategoryModal(true)
+  }
+
+  const handleConfirmDeleteCategory = async () => {
+    if (!categoryToDelete) return
+
+    try {
+      const response = await api.delete(`/categories/${categoryToDelete._id}`)
+
+      if (response.data.success) {
+        // Refresh categories list
+        const refreshResponse = await api.get('/categories')
+        if (refreshResponse.data.success) {
+          setDbCategories(refreshResponse.data.data || [])
+        }
+        setShowDeleteCategoryModal(false)
+        setCategoryToDelete(null)
+        showToast('Category deleted successfully', 'success')
+      } else {
+        showToast(response.data.error || 'Failed to delete category', 'error')
+      }
+    } catch (error: any) {
+      console.error('Error deleting category:', error)
+      const errorMessage = error.response?.data?.error || error.message || 'Failed to delete category'
+      showToast(errorMessage, 'error')
+    }
+  }
+
+  const handleCancelDeleteCategory = () => {
+    setShowDeleteCategoryModal(false)
+    setCategoryToDelete(null)
+  }
+
+  const handleDragStart = (categoryId: string) => {
+    setDraggedCategoryId(categoryId)
+    setIsDragging(true)
+  }
+
+  const handleDragOver = (e: React.DragEvent, categoryId: string) => {
+    e.preventDefault()
+    if (categoryId !== draggedCategoryId) {
+      setDragOverCategoryId(categoryId)
+    }
+  }
+
+  const handleDragLeave = () => {
+    setDragOverCategoryId(null)
+  }
+
+  const handleDrop = async (e: React.DragEvent, targetCategoryId: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragOverCategoryId(null)
+
+    // Prevent multiple simultaneous reorder requests using both state and ref
+    if (isReordering || reorderInProgressRef.current) {
+      setDraggedCategoryId(null)
+      return
+    }
+
+    if (!draggedCategoryId || draggedCategoryId === targetCategoryId) {
+      setDraggedCategoryId(null)
+      return
+    }
+
+    // Reorder categories locally
+    const reorderedCategories = [...dbCategories]
+    const draggedIndex = reorderedCategories.findIndex(cat => cat._id === draggedCategoryId)
+    const targetIndex = reorderedCategories.findIndex(cat => cat._id === targetCategoryId)
+
+    if (draggedIndex === -1 || targetIndex === -1) {
+      setDraggedCategoryId(null)
+      return
+    }
+
+    // Remove dragged category and insert at target position
+    const [draggedCategory] = reorderedCategories.splice(draggedIndex, 1)
+    reorderedCategories.splice(targetIndex, 0, draggedCategory)
+
+    // Update order values
+    const categoryIds = reorderedCategories.map(cat => cat._id)
+
+    // Validate categoryIds array
+    if (!Array.isArray(categoryIds) || categoryIds.length === 0) {
+      console.error('Invalid categoryIds:', categoryIds)
+      setDraggedCategoryId(null)
+      return
+    }
+
+    // Optimistically update UI
+    setDbCategories(reorderedCategories)
+    setIsReordering(true)
+    reorderInProgressRef.current = true
+
+    // Save to database
+    try {
+      const response = await api.put('/categories/reorder', { categoryIds })
+      if (!response.data.success) {
+        // Revert on error
+        const refreshResponse = await api.get('/categories')
+        if (refreshResponse.data.success) {
+          setDbCategories(refreshResponse.data.data || [])
+        }
+        showToast(response.data.error || 'Failed to reorder categories', 'error')
+      } else {
+        // Only show success toast once
+        showToast('Categories reordered successfully', 'success')
+      }
+    } catch (error: any) {
+      console.error('Error reordering categories:', error)
+      // Revert on error
+      try {
+        const refreshResponse = await api.get('/categories')
+        if (refreshResponse.data.success) {
+          setDbCategories(refreshResponse.data.data || [])
+        }
+      } catch (refreshError) {
+        console.error('Error refreshing categories:', refreshError)
+      }
+      const errorMessage = error.response?.data?.error || error.message || 'Failed to reorder categories'
+      showToast(errorMessage, 'error')
+    } finally {
+      setIsReordering(false)
+      reorderInProgressRef.current = false
+      setDraggedCategoryId(null)
+    }
+  }
+
+  const handleDragEnd = () => {
+    // Use setTimeout to prevent immediate click events after drag
+    setTimeout(() => {
+      setIsDragging(false)
+    }, 100)
+    setDraggedCategoryId(null)
+    setDragOverCategoryId(null)
   }
 
   const getStatusColor = (status: string) => {
@@ -335,7 +835,6 @@ export function OneAppDeveloper() {
 
   // Render Categories Tab
   const renderCategoriesTab = () => {
-    const categoryList = categories.filter((cat) => cat !== 'All')
     return (
       <div className={styles.categoriesTab}>
         <div className={styles.sectionHeader}>
@@ -345,67 +844,133 @@ export function OneAppDeveloper() {
           </p>
         </div>
 
-        <div className={styles.categoriesList}>
-          {categoryList.map((category) => (
-            <div key={category} className={styles.categoryItem}>
-              {editingCategory === category ? (
-                <div className={styles.categoryEdit}>
-                  <input
-                    type="text"
-                    value={newCategoryName}
-                    onChange={(e) => setNewCategoryName(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleSaveCategory()
-                      if (e.key === 'Escape') {
-                        setEditingCategory(null)
-                        setNewCategoryName('')
-                      }
+        {loadingCategories ? (
+          <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+            Loading categories...
+          </div>
+        ) : (
+          <div className={styles.categoriesList}>
+            {dbCategories.map((category) => (
+              <div
+                key={category._id}
+                className={`${styles.categoryItem} ${draggedCategoryId === category._id ? styles.dragging : ''} ${dragOverCategoryId === category._id ? styles.dragOver : ''}`}
+                draggable={!isReordering}
+                onDragStart={(e) => {
+                  if (!isReordering) {
+                    e.dataTransfer.effectAllowed = 'move'
+                    e.stopPropagation()
+                    handleDragStart(category._id)
+                  } else {
+                    e.preventDefault()
+                  }
+                }}
+                onDragOver={(e) => {
+                  if (draggedCategoryId && !isReordering) {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    handleDragOver(e, category._id)
+                  }
+                }}
+                onDragLeave={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  handleDragLeave()
+                }}
+                onDrop={(e) => {
+                  if (draggedCategoryId && !isReordering && !reorderInProgressRef.current) {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    handleDrop(e, category._id)
+                  } else {
+                    e.preventDefault()
+                    e.stopPropagation()
+                  }
+                }}
+                onDragEnd={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  handleDragEnd()
+                }}
+                onMouseDown={(e) => {
+                  // Prevent drag from triggering click events on buttons/inputs
+                  const target = e.target as HTMLElement
+                  if (target.tagName === 'BUTTON' || target.tagName === 'INPUT' || target.closest('button') || target.closest('input')) {
+                    e.stopPropagation()
+                    return
+                  }
+                  // If clicking on drag handle, allow drag
+                  if (target.closest(`.${styles.dragHandle}`)) {
+                    return
+                  }
+                }}
+                onClick={(e) => {
+                  // Prevent click events during or immediately after drag
+                  if (isDragging || draggedCategoryId) {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    return
+                  }
+                  // Open edit modal when clicking on category item (but not on buttons)
+                  const target = e.target as HTMLElement
+                  if (!target.closest('button')) {
+                    handleEditCategory(category)
+                  }
+                }}
+              >
+                <div className={styles.categoryInfo}>
+                  <div 
+                    className={styles.dragHandle} 
+                    title="Drag to reorder"
+                    onMouseDown={(e) => {
+                      // Only allow drag from the handle, prevent clicks
+                      e.stopPropagation()
                     }}
-                    className={styles.categoryInput}
-                    autoFocus
-                  />
-                  <button className={styles.saveButton} onClick={handleSaveCategory}>
-                    Save
-                  </button>
-                  <button
-                    className={styles.cancelButton}
-                    onClick={() => {
-                      setEditingCategory(null)
-                      setNewCategoryName('')
+                    onClick={(e) => {
+                      // Prevent click events on drag handle
+                      e.preventDefault()
+                      e.stopPropagation()
                     }}
                   >
-                    Cancel
+                    {category.icon ? (
+                      (() => {
+                        const IconComponent = getIcon(category.icon)
+                        return <IconComponent className={styles.categoryIcon} style={{ color: category.color || undefined }} />
+                      })()
+                    ) : (
+                      <IconCategory className={styles.categoryIcon} style={{ color: category.color || undefined }} />
+                    )}
+                  </div>
+                  <span className={styles.categoryName}>{category.name}</span>
+                  <span className={styles.categoryCount}>
+                    {category.appCount} {category.appCount === 1 ? 'app' : 'apps'}
+                  </span>
+                </div>
+                <div className={styles.categoryActions}>
+                  <button
+                    className={styles.iconButton}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleEditCategory(category)
+                    }}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    title="Edit"
+                  >
+                    <IconEdit />
+                  </button>
+                  <button
+                    className={styles.iconButton}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleDeleteCategoryClick(category)
+                    }}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    title="Delete"
+                  >
+                    <IconTrash />
                   </button>
                 </div>
-              ) : (
-                <>
-                  <div className={styles.categoryInfo}>
-                    <IconCategory className={styles.categoryIcon} />
-                    <span className={styles.categoryName}>{category}</span>
-                    <span className={styles.categoryCount}>
-                      {allPages.filter((p) => p.category === category).length} apps
-                    </span>
-                  </div>
-                  <div className={styles.categoryActions}>
-                    <button
-                      className={styles.iconButton}
-                      onClick={() => handleEditCategory(category)}
-                      title="Edit"
-                    >
-                      <IconEdit />
-                    </button>
-                    <button
-                      className={styles.iconButton}
-                      onClick={() => handleDeleteCategory(category)}
-                      title="Delete"
-                    >
-                      <IconTrash />
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          ))}
+              </div>
+            ))}
 
           {showAddCategory ? (
             <div className={styles.addCategoryForm}>
@@ -414,6 +979,10 @@ export function OneAppDeveloper() {
                 value={newCategoryName}
                 onChange={(e) => setNewCategoryName(e.target.value)}
                 onKeyDown={(e) => {
+                  // Prevent Enter key if we're dragging
+                  if (isDragging || draggedCategoryId) {
+                    return
+                  }
                   if (e.key === 'Enter') handleAddCategory()
                   if (e.key === 'Escape') {
                     setShowAddCategory(false)
@@ -424,26 +993,70 @@ export function OneAppDeveloper() {
                 className={styles.categoryInput}
                 autoFocus
               />
-              <button className={styles.saveButton} onClick={handleAddCategory}>
+              <button 
+                className={styles.saveButton} 
+                onClick={(e) => {
+                  // Prevent click if we're dragging
+                  if (isDragging || draggedCategoryId) {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    return
+                  }
+                  e.stopPropagation()
+                  handleAddCategory()
+                }}
+                onMouseDown={(e) => {
+                  if (isDragging || draggedCategoryId) {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    return
+                  }
+                  e.stopPropagation()
+                }}
+              >
                 Add
               </button>
               <button
                 className={styles.cancelButton}
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation()
                   setShowAddCategory(false)
                   setNewCategoryName('')
                 }}
+                onMouseDown={(e) => e.stopPropagation()}
               >
                 Cancel
               </button>
             </div>
           ) : (
-            <button className={styles.addCategoryButton} onClick={() => setShowAddCategory(true)}>
+            <button 
+              className={styles.addCategoryButton} 
+              onClick={(e) => {
+                // Prevent click if we're dragging
+                if (isDragging || draggedCategoryId) {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  return
+                }
+                e.stopPropagation()
+                setShowAddCategory(true)
+              }}
+              onMouseDown={(e) => {
+                // Prevent mouse down if we're dragging
+                if (isDragging || draggedCategoryId) {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  return
+                }
+                e.stopPropagation()
+              }}
+            >
               <IconPlus />
               <span>Add Category</span>
             </button>
           )}
-        </div>
+          </div>
+        )}
       </div>
     )
   }
@@ -1152,16 +1765,28 @@ export function OneAppDeveloper() {
                     )}
                   </div>
                   <div className={styles.formGroup}>
+                    <label>App URL</label>
+                    <input
+                      type="text"
+                      placeholder="/app-path"
+                      value={editFormData.path}
+                      onChange={(e) => handlePathChange(e.target.value)}
+                      className={pathError ? styles.inputError : ''}
+                    />
+                    {pathError && <span className={styles.errorText}>{pathError}</span>}
+                    <small className={styles.formHint}>The URL path for this app (must start with /)</small>
+                  </div>
+                  <div className={styles.formGroup}>
                     <label>Category</label>
                     <select
                       value={editFormData.category}
                       onChange={(e) => setEditFormData({ ...editFormData, category: e.target.value })}
                     >
-                      {categories
-                        .filter((cat) => cat !== 'All')
+                      {dbCategories
+                        .filter((cat) => cat.status === 'active')
                         .map((category) => (
-                          <option key={category} value={category}>
-                            {category}
+                          <option key={category._id} value={category.name}>
+                            {category.name}
                           </option>
                         ))}
                     </select>
@@ -1289,6 +1914,57 @@ export function OneAppDeveloper() {
                   Close
                 </button>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Category Confirmation Modal */}
+      {showDeleteCategoryModal && categoryToDelete && (
+        <div className={styles.modalOverlay} onClick={handleCancelDeleteCategory}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h2>Delete Category</h2>
+              <button className={styles.modalClose} onClick={handleCancelDeleteCategory}>×</button>
+            </div>
+            <div className={styles.modalBody}>
+              <p style={{ marginBottom: '16px', color: 'var(--text-secondary)' }}>
+                Are you sure you want to delete the category <strong>"{categoryToDelete.name}"</strong>?
+              </p>
+              {categoryToDelete.appCount > 0 && (
+                <div style={{ 
+                  padding: '12px', 
+                  background: 'var(--warning-light)', 
+                  borderRadius: '8px', 
+                  marginBottom: '16px',
+                  color: 'var(--warning)',
+                  fontSize: '0.9rem'
+                }}>
+                  ⚠️ This category has {categoryToDelete.appCount} {categoryToDelete.appCount === 1 ? 'app' : 'apps'}. 
+                  You cannot delete a category that has apps assigned to it.
+                </div>
+              )}
+              <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                This action cannot be undone.
+              </p>
+            </div>
+            <div className={styles.modalFooter}>
+              <button className={styles.modalButtonSecondary} onClick={handleCancelDeleteCategory}>
+                Cancel
+              </button>
+              <button 
+                className={styles.modalButtonPrimary} 
+                onClick={handleConfirmDeleteCategory}
+                disabled={categoryToDelete.appCount > 0}
+                style={{
+                  background: categoryToDelete.appCount > 0 ? 'var(--bg-hover)' : 'var(--danger)',
+                  color: categoryToDelete.appCount > 0 ? 'var(--text-secondary)' : 'white',
+                  cursor: categoryToDelete.appCount > 0 ? 'not-allowed' : 'pointer',
+                  opacity: categoryToDelete.appCount > 0 ? 0.6 : 1
+                }}
+              >
+                Delete Category
+              </button>
             </div>
           </div>
         </div>
@@ -1584,6 +2260,252 @@ export function OneAppDeveloper() {
           </div>
         </div>
       )}
+
+      {/* Category Edit Modal */}
+      {showCategoryEditModal && categoryEditData && (
+        <div className={styles.modalOverlay} onClick={() => setShowCategoryEditModal(false)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()} style={{ maxWidth: '800px', maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <div className={styles.modalHeader} style={{ flexShrink: 0 }}>
+              <h2>Edit Category</h2>
+              <button className={styles.modalClose} onClick={() => setShowCategoryEditModal(false)}>×</button>
+            </div>
+            <div className={styles.modalBody} style={{ overflowY: 'auto', flex: 1, padding: '32px' }}>
+              {/* Visual Preview Section */}
+              <div className={styles.categoryPreviewSection}>
+                <div className={styles.categoryPreviewCard}>
+                  {categoryEditData.icon ? (
+                    (() => {
+                      const IconComponent = getIcon(categoryEditData.icon)
+                      return (
+                        <div className={styles.categoryPreviewIcon} style={{ color: categoryEditData.color || '#3B82F6' }}>
+                          <IconComponent />
+                        </div>
+                      )
+                    })()
+                  ) : (
+                    <div className={styles.categoryPreviewIcon} style={{ color: categoryEditData.color || '#3B82F6' }}>
+                      <IconCategory />
+                    </div>
+                  )}
+                  <div className={styles.categoryPreviewInfo}>
+                    <div className={styles.categoryPreviewName}>{categoryEditData.name || 'Category Name'}</div>
+                    <div className={styles.categoryPreviewSlug}>{categoryEditData.slug || 'category-slug'}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Form Fields Grid */}
+              <div className={styles.categoryFormGrid}>
+                {/* Category Icon */}
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>
+                    <span>Category Icon</span>
+                  </label>
+                  <select
+                    value={categoryEditData.icon}
+                    onChange={(e) => setCategoryEditData({ ...categoryEditData, icon: e.target.value })}
+                    className={styles.formSelect}
+                  >
+                    <option value="">Select an icon</option>
+                    {Object.keys(iconMap).map((iconName) => (
+                      <option key={iconName} value={iconName}>
+                        {iconName.replace('Icon', '')}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Category Color */}
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>
+                    <span>Category Color</span>
+                  </label>
+                  <div className={styles.colorPickerGroup}>
+                    <div className={styles.colorPickerWrapper}>
+                      <input
+                        type="color"
+                        value={categoryEditData.color || '#3B82F6'}
+                        onChange={(e) => setCategoryEditData({ ...categoryEditData, color: e.target.value })}
+                        className={styles.colorPicker}
+                      />
+                    </div>
+                    <input
+                      type="text"
+                      value={categoryEditData.color || ''}
+                      onChange={(e) => setCategoryEditData({ ...categoryEditData, color: e.target.value })}
+                      placeholder="#3B82F6"
+                      className={styles.formInput}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Category Name */}
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>
+                  <span>Category Name</span>
+                  <span className={styles.required}>*</span>
+                </label>
+                <input
+                  type="text"
+                  value={categoryEditData.name}
+                  onChange={(e) => {
+                    const newName = e.target.value
+                    setCategoryEditData({
+                      ...categoryEditData,
+                      name: newName,
+                      // Auto-generate slug if empty
+                      slug: categoryEditData.slug || newName.toLowerCase().trim().replace(/[^\w\s-]/g, '').replace(/[\s_-]+/g, '-').replace(/^-+|-+$/g, ''),
+                    })
+                  }}
+                  className={styles.formInput}
+                  required
+                  placeholder="Enter category name"
+                />
+              </div>
+
+              {/* Slug */}
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>
+                  <span>Slug</span>
+                  <span className={styles.formHint}>(auto-generated)</span>
+                </label>
+                <input
+                  type="text"
+                  value={categoryEditData.slug}
+                  onChange={(e) => {
+                    const newSlug = e.target.value.toLowerCase().trim().replace(/[^\w\s-]/g, '').replace(/[\s_-]+/g, '-').replace(/^-+|-+$/g, '')
+                    setCategoryEditData({ ...categoryEditData, slug: newSlug })
+                  }}
+                  className={styles.formInput}
+                  placeholder="category-slug"
+                />
+                <div className={styles.formHelperText}>
+                  URL-friendly identifier used in URLs and routes
+                </div>
+              </div>
+
+              {/* Description */}
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>
+                  <span>Description</span>
+                </label>
+                <textarea
+                  value={categoryEditData.description}
+                  onChange={(e) => setCategoryEditData({ ...categoryEditData, description: e.target.value })}
+                  className={styles.formTextarea}
+                  rows={4}
+                  placeholder="Describe what this category is for..."
+                />
+              </div>
+
+              {/* App List Section */}
+              <div className={styles.categoryAppsSection}>
+                <div className={styles.categoryAppsHeader}>
+                  <div>
+                    <label className={styles.formLabel} style={{ marginBottom: '4px' }}>
+                      <span>Apps in this Category</span>
+                    </label>
+                    <div className={styles.categoryAppsCount}>
+                      {categoryApps.length} {categoryApps.length === 1 ? 'app' : 'apps'}
+                    </div>
+                  </div>
+                  <div style={{ position: 'relative' }}>
+                    <button
+                      className={styles.addAppButton}
+                      onClick={() => setShowAddAppDropdown(!showAddAppDropdown)}
+                    >
+                      <IconPlus />
+                      <span>Add App</span>
+                    </button>
+                    {showAddAppDropdown && (
+                      <div className={styles.addAppDropdown}>
+                        {unassignedApps.length === 0 ? (
+                          <div className={styles.addAppDropdownEmpty}>
+                            No unassigned apps available
+                          </div>
+                        ) : (
+                          unassignedApps.map((app) => (
+                            <div
+                              key={app._id || app.id}
+                              className={styles.addAppDropdownItem}
+                              onClick={() => handleAddAppToCategory(app._id || app.id)}
+                            >
+                              {app.icon && (() => {
+                                const IconComponent = getIcon(app.icon)
+                                return <IconComponent className={styles.addAppDropdownIcon} />
+                              })()}
+                              <div className={styles.addAppDropdownInfo}>
+                                <div className={styles.addAppDropdownName}>{app.name}</div>
+                                {app.shortDescription && (
+                                  <div className={styles.addAppDropdownDesc}>{app.shortDescription}</div>
+                                )}
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {loadingCategoryApps ? (
+                  <div className={styles.categoryAppsLoading}>
+                    Loading apps...
+                  </div>
+                ) : categoryApps.length === 0 ? (
+                  <div className={styles.categoryAppsEmpty}>
+                    <IconCategory className={styles.categoryAppsEmptyIcon} />
+                    <div className={styles.categoryAppsEmptyText}>No apps in this category</div>
+                    <div className={styles.categoryAppsEmptyHint}>Click "Add App" to assign apps to this category</div>
+                  </div>
+                ) : (
+                  <div className={styles.categoryAppsList}>
+                    {categoryApps.map((app) => (
+                      <div key={app._id || app.id} className={styles.categoryAppItem}>
+                        {app.icon && (() => {
+                          const IconComponent = getIcon(app.icon)
+                          return <IconComponent className={styles.categoryAppIcon} />
+                        })()}
+                        <div className={styles.categoryAppInfo}>
+                          <div className={styles.categoryAppName}>{app.name}</div>
+                          {app.shortDescription && (
+                            <div className={styles.categoryAppDesc}>{app.shortDescription}</div>
+                          )}
+                          <div className={styles.categoryAppBadges}>
+                            <span className={styles.categoryAppBadge}>{app.appType || 'In use app'}</span>
+                            <span className={`${styles.categoryAppBadge} ${styles.categoryAppBadgeStatus} ${styles[`status${app.status?.replace(/\s+/g, '')}`] || ''}`}>
+                              {app.status}
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          className={styles.categoryAppRemoveButton}
+                          onClick={() => handleRemoveAppFromCategory(app._id || app.id)}
+                          title="Remove from category"
+                        >
+                          <IconTrash />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className={styles.modalFooter} style={{ flexShrink: 0 }}>
+              <button className={styles.modalButtonSecondary} onClick={() => setShowCategoryEditModal(false)}>
+                Cancel
+              </button>
+              <button className={styles.modalButtonPrimary} onClick={handleSaveCategory}>
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Notifications */}
+      <ToastContainer toasts={toasts} onClose={removeToast} />
     </div>
   )
 }

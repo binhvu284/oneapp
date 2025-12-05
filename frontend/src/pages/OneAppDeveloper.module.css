@@ -466,12 +466,37 @@
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 8px;
+  cursor: move;
   transition: all 0.2s ease;
+  position: relative;
 }
 
 .categoryItem:hover {
   border-color: var(--primary);
   background: var(--bg-hover);
+}
+
+.categoryItem.dragging {
+  opacity: 0.5;
+  cursor: grabbing;
+}
+
+.categoryItem.dragOver {
+  border-color: var(--primary);
+  background: rgba(37, 99, 235, 0.1);
+  border-top: 2px solid var(--primary);
+}
+
+.dragHandle {
+  cursor: grab;
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  margin-right: 8px;
+}
+
+.dragHandle:active {
+  cursor: grabbing;
 }
 
 .categoryInfo {
@@ -1167,7 +1192,8 @@
   max-width: 600px;
   width: 100%;
   max-height: 90vh;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
@@ -1181,6 +1207,7 @@
   justify-content: space-between;
   padding: 24px;
   border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
 }
 
 .modalHeaderActions {
@@ -1298,6 +1325,9 @@
 
 .modalBody {
   padding: 24px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
 }
 
 .modalHint {
@@ -1313,6 +1343,7 @@
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+  flex-shrink: 0;
 }
 
 .modalButtonPrimary {
@@ -1642,6 +1673,498 @@
   outline: none;
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.editForm .formGroup input {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+}
+
+.editForm .formGroup input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.editForm .formGroup input.inputError {
+  border-color: #ef4444;
+}
+
+.editForm .formGroup input.inputError:focus {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.errorText {
+  color: #ef4444;
+  font-size: 0.85rem;
+  margin-top: 4px;
+}
+
+/* Category Edit Form Styles */
+.categoryPreviewSection {
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.categoryPreviewCard {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: var(--bg-hover);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+.categoryPreviewIcon {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+
+.categoryPreviewIcon svg {
+  width: 32px;
+  height: 32px;
+}
+
+.categoryPreviewInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.categoryPreviewName {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.categoryPreviewSlug {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  font-family: 'Courier New', monospace;
+}
+
+.categoryFormGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 768px) {
+  .categoryFormGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.formLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.formLabel .required {
+  color: #ef4444;
+  font-weight: 700;
+}
+
+.formHint {
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
+.formHelperText {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
+.formSelect {
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+}
+
+.formSelect:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.formInput {
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.formInput:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.formInput::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.6;
+}
+
+.formTextarea {
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.95rem;
+  font-family: inherit;
+  resize: vertical;
+  transition: all 0.2s ease;
+  width: 100%;
+  min-height: 100px;
+  line-height: 1.5;
+}
+
+.formTextarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.formTextarea::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.6;
+}
+
+.colorPickerGroup {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.colorPickerWrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.colorPicker {
+  width: 56px;
+  height: 56px;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  padding: 0;
+  background: none;
+  transition: all 0.2s ease;
+}
+
+.colorPicker:hover {
+  border-color: var(--primary);
+  transform: scale(1.05);
+}
+
+.colorPicker::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.colorPicker::-webkit-color-swatch {
+  border: none;
+  border-radius: 6px;
+}
+
+/* Category Apps Section */
+.categoryAppsSection {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+
+.categoryAppsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  gap: 16px;
+}
+
+.categoryAppsCount {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.addAppButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--primary);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.addAppButton:hover {
+  background: rgb(29, 78, 216);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.addAppButton svg {
+  width: 16px;
+  height: 16px;
+}
+
+.addAppDropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  max-height: 320px;
+  overflow-y: auto;
+  z-index: 1000;
+  min-width: 320px;
+  max-width: 400px;
+}
+
+.addAppDropdownEmpty {
+  padding: 24px;
+  color: var(--text-secondary);
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.addAppDropdownItem {
+  padding: 14px 16px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: background 0.2s ease;
+}
+
+.addAppDropdownItem:last-child {
+  border-bottom: none;
+}
+
+.addAppDropdownItem:hover {
+  background: var(--bg-hover);
+}
+
+.addAppDropdownIcon {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  color: var(--text-secondary);
+}
+
+.addAppDropdownInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.addAppDropdownName {
+  font-weight: 500;
+  font-size: 0.95rem;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+
+.addAppDropdownDesc {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.categoryAppsLoading {
+  padding: 60px 20px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+.categoryAppsEmpty {
+  padding: 48px 24px;
+  text-align: center;
+  background: var(--bg-hover);
+  border-radius: 12px;
+  border: 1px dashed var(--border);
+}
+
+.categoryAppsEmptyIcon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 16px;
+  color: var(--text-secondary);
+  opacity: 0.5;
+}
+
+.categoryAppsEmptyText {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.categoryAppsEmptyHint {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.categoryAppsList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.categoryAppItem {
+  padding: 16px;
+  background: var(--bg-hover);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  transition: all 0.2s ease;
+}
+
+.categoryAppItem:hover {
+  border-color: var(--primary);
+  background: var(--bg);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.categoryAppIcon {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.categoryAppInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.categoryAppName {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.categoryAppDesc {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.categoryAppBadges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.categoryAppBadge {
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  background: var(--bg);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.categoryAppBadgeStatus {
+  background: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+}
+
+.categoryAppBadgeStatus.statusComingsoon {
+  background: rgba(251, 191, 36, 0.1);
+  color: #fbbf24;
+}
+
+.categoryAppBadgeStatus.statusUnavailable {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.categoryAppRemoveButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.categoryAppRemoveButton:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+.categoryAppRemoveButton svg {
+  width: 18px;
+  height: 18px;
+}
+
+.formHint {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  margin-top: 4px;
 }
 
 .imagePreview {

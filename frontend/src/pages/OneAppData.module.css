@@ -392,6 +392,9 @@
   border-radius: 8px;
   padding: 20px;
   overflow-x: auto;
+  height: 400px;
+  display: flex;
+  flex-direction: column;
 }
 
 .sqlCode {
@@ -401,6 +404,10 @@
   line-height: 1.6;
   color: var(--text);
   white-space: pre;
+  overflow-y: auto;
+  overflow-x: auto;
+  flex: 1;
+  min-height: 0;
 }
 
 .sqlCode code {
@@ -413,6 +420,40 @@
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 24px;
+}
+
+.tablesSectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.downloadAllButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--primary);
+  border: 1px solid var(--primary);
+  border-radius: 8px;
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.downloadAllButton:hover {
+  background: rgba(37, 99, 235, 0.9);
+  border-color: rgba(37, 99, 235, 0.9);
+}
+
+.downloadAllButton svg {
+  width: 18px;
+  height: 18px;
 }
 
 .tablesList {

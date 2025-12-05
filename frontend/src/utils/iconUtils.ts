@@ -48,7 +48,7 @@ import {
   IconMinimize,
 } from '@/components/Icons'
 
-const iconMap: Record<string, React.ComponentType<React.SVGProps<SVGSVGElement>>> = {
+export const iconMap: Record<string, React.ComponentType<React.SVGProps<SVGSVGElement>>> = {
   IconDashboard,
   IconAI,
   IconModules,

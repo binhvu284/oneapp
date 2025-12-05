@@ -1,11 +1,24 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { allPages, categories, searchPages, type PageInfo, type AppStatus } from '@/data/pages'
+import { allPages, searchPages, type PageInfo, type AppStatus } from '@/data/pages'
 import { IconSearch, IconFilter, IconChevronRight, IconEye, IconExternalLink, IconInUse, IconIntegrated, IconOpenSource, IconCore, IconTools, IconCategory, IconSettings } from '@/components/Icons'
 import { getIcon } from '@/utils/iconUtils'
+import api from '@/services/api'
 import styles from './Library.module.css'
 
 type Section = 'Home' | 'All app' | 'Categories' | 'Upcoming app'
+
+interface Category {
+  _id: string
+  name: string
+  slug: string
+  description?: string
+  icon?: string
+  color?: string
+  status: string
+  appCount: number
+  order?: number
+}
 
 export function Library() {
   const navigate = useNavigate()
@@ -14,6 +27,45 @@ export function Library() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [selectedAppType, setSelectedAppType] = useState<string | null>(null)
   const [showFilters, setShowFilters] = useState(false)
+  const [dbCategories, setDbCategories] = useState<Category[]>([])
+  const [loadingCategories, setLoadingCategories] = useState(false)
+
+  // Fetch categories from database
+  useEffect(() => {
+    const fetchCategories = async () => {
+      setLoadingCategories(true)
+      try {
+        const response = await api.get('/categories')
+        if (response.data.success) {
+          setDbCategories(response.data.data || [])
+        }
+      } catch (error) {
+        console.error('Error fetching categories:', error)
+        // Fallback to empty array if API fails
+        setDbCategories([])
+      } finally {
+        setLoadingCategories(false)
+      }
+    }
+    fetchCategories()
+  }, [])
+
+  // Get active categories from database, sorted by order
+  const categories = useMemo(() => {
+    const activeCategories = dbCategories
+      .filter((cat) => cat.status === 'active')
+      .sort((a, b) => {
+        // Sort by order if both have order, otherwise by name
+        if (a.order !== undefined && b.order !== undefined) {
+          return a.order - b.order
+        }
+        if (a.order !== undefined) return -1
+        if (b.order !== undefined) return 1
+        return a.name.localeCompare(b.name)
+      })
+      .map((cat) => cat.name)
+    return ['All', ...activeCategories]
+  }, [dbCategories])
 
   // Home sections configuration
   const homeSections = [
@@ -130,6 +182,19 @@ export function Library() {
   }
 
   const getCategoryIcon = (category: string) => {
+    // Try to get icon from database category first
+    const dbCategory = dbCategories.find((cat) => cat.name === category)
+    if (dbCategory?.icon) {
+      // If category has an icon name, try to get it
+      try {
+        const Icon = getIcon(dbCategory.icon)
+        return Icon
+      } catch {
+        // Fallback to default icon mapping
+      }
+    }
+
+    // Fallback to default icon mapping
     switch (category) {
       case 'Core':
         return IconCore
@@ -468,24 +533,37 @@ export function Library() {
         {/* App Categories Section */}
         <div className={styles.filterSection}>
           <h2 className={styles.filterSectionTitle}>App Categories</h2>
-          <div className={styles.filterOptions}>
-            {categoryList.map((category) => {
-              const CategoryIcon = getCategoryIcon(category)
-              const categoryApps = allPages.filter((page) => page.category === category)
-              return (
-                <div
-                  key={category}
-                  className={styles.filterOption}
-                  onClick={() => handleCategoryClick(category)}
-                >
-                  <CategoryIcon className={styles.filterOptionIcon} />
-                  <span className={styles.filterOptionText}>{category}</span>
-                  <span className={styles.filterOptionCount}>{categoryApps.length}</span>
-                  <IconChevronRight className={styles.filterOptionArrow} />
-                </div>
-              )
-            })}
-          </div>
+          {loadingCategories ? (
+            <div className={styles.loadingState}>
+              <p>Loading categories...</p>
+            </div>
+          ) : categoryList.length === 0 ? (
+            <div className={styles.emptyState}>
+              <p>No categories found.</p>
+            </div>
+          ) : (
+            <div className={styles.filterOptions}>
+              {categoryList.map((category) => {
+                const CategoryIcon = getCategoryIcon(category)
+                const categoryApps = allPages.filter((page) => page.category === category)
+                // Get app count from database if available
+                const dbCategory = dbCategories.find((cat) => cat.name === category)
+                const appCount = dbCategory?.appCount ?? categoryApps.length
+                return (
+                  <div
+                    key={category}
+                    className={styles.filterOption}
+                    onClick={() => handleCategoryClick(category)}
+                  >
+                    <CategoryIcon className={styles.filterOptionIcon} />
+                    <span className={styles.filterOptionText}>{category}</span>
+                    <span className={styles.filterOptionCount}>{appCount}</span>
+                    <IconChevronRight className={styles.filterOptionArrow} />
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </div>
       </div>
     )
