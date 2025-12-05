@@ -6,71 +6,11 @@ import { dirname } from 'path'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
-/**
- * Get the project root directory where "OneApp data" folder is located
- * This function handles different deployment scenarios:
- * - Local development: process.cwd() = project root
- * - Vercel serverless: process.cwd() = project root (or backend root)
- * - Compiled code: __dirname = dist/utils/ -> need to go up to project root
- */
-function getProjectRoot(): string {
-  const cwd = process.cwd()
-  
-  // Strategy 1: Check if "OneApp data" exists in current directory
-  try {
-    const testPath = path.join(cwd, 'OneApp data')
-    // We can't use fs.existsSync in async context, but we'll try to read later
-    // For now, assume if cwd doesn't end with backend/dist, it's project root
-    if (!cwd.includes('backend') && !cwd.includes('dist')) {
-      return cwd
-    }
-  } catch {
-    // Continue to other strategies
-  }
-  
-  // Strategy 2: If we're in backend directory, go up one level
-  if (cwd.endsWith('backend') || cwd.endsWith('backend/')) {
-    return path.resolve(cwd, '..')
-  }
-  
-  // Strategy 3: If we're in dist directory (compiled code)
-  // From dist/utils/fileStorage.js -> dist -> backend -> project root
-  if (cwd.includes('dist')) {
-    // Remove dist and everything after it
-    const backendRoot = cwd.replace(/[/\\]dist.*$/, '')
-    // If backendRoot ends with backend, go up one more level
-    if (backendRoot.endsWith('backend') || backendRoot.endsWith('backend/')) {
-      return path.resolve(backendRoot, '..')
-    }
-    return backendRoot
-  }
-  
-  // Strategy 4: Use __dirname for compiled code
-  // From dist/utils/fileStorage.js -> dist -> backend -> project root
-  if (__dirname.includes('dist')) {
-    const distRoot = path.resolve(__dirname, '../..')
-    const backendRoot = distRoot.replace(/[/\\]dist$/, '')
-    if (backendRoot.endsWith('backend') || backendRoot.endsWith('backend/')) {
-      return path.resolve(backendRoot, '..')
-    }
-    return backendRoot
-  }
-  
-  // Default: assume current directory is project root
-  return cwd
-}
-
-// Get the data directory path
-const projectRoot = getProjectRoot()
-const ONEAPP_DATA_DIR = path.join(projectRoot, 'OneApp data')
-
-// Log for debugging (only in production to help diagnose issues)
-if (process.env.NODE_ENV === 'production') {
-  console.log(`[fileStorage] Project root: ${projectRoot}`)
-  console.log(`[fileStorage] Data directory: ${ONEAPP_DATA_DIR}`)
-  console.log(`[fileStorage] process.cwd(): ${process.cwd()}`)
-  console.log(`[fileStorage] __dirname: ${__dirname}`)
-}
+// Path to OneApp data folder
+// Use process.cwd() which should point to project root in both localhost and Vercel
+// In Vercel serverless functions, process.cwd() points to the function's working directory
+// which should be the project root if configured correctly
+const ONEAPP_DATA_DIR = path.resolve(process.cwd(), 'OneApp data')
 
 /**
  * Get the full path to a JSON file in OneApp data folder
@@ -80,50 +20,62 @@ function getDataFilePath(filename: string): string {
 }
 
 /**
- * Read JSON data from file
- * Tries multiple path strategies to find the file
+ * Try to find the data file by checking multiple possible paths
  */
-export async function readJsonFile<T>(filename: string): Promise<T[]> {
-  const pathsToTry = [
-    getDataFilePath(filename), // Primary path
-    path.join(process.cwd(), 'OneApp data', filename), // From project root
-    path.join(process.cwd(), '..', 'OneApp data', filename), // If in backend directory
-    path.resolve(__dirname, '../../..', 'OneApp data', filename), // From compiled dist
+async function findDataFile(filename: string): Promise<string | null> {
+  const possiblePaths = [
+    // From compiled dist folder (Vercel/serverless)
+    path.resolve(__dirname, '../../../..', 'OneApp data', filename),
+    // From source folder (localhost development)
+    path.resolve(__dirname, '../../..', 'OneApp data', filename),
+    // From process.cwd()
+    path.resolve(process.cwd(), 'OneApp data', filename),
+    // From backend directory
+    path.resolve(process.cwd(), '..', 'OneApp data', filename),
   ]
-  
-  for (const filePath of pathsToTry) {
+
+  for (const filePath of possiblePaths) {
     try {
-      // Log for debugging in production
-      if (process.env.NODE_ENV === 'production' && pathsToTry.indexOf(filePath) === 0) {
-        console.log(`[fileStorage] Attempting to read: ${filePath}`)
-        console.log(`[fileStorage] process.cwd(): ${process.cwd()}`)
-        console.log(`[fileStorage] __dirname: ${__dirname}`)
-      }
-      
-      const data = await fs.readFile(filePath, 'utf-8')
-      
-      if (process.env.NODE_ENV === 'production') {
-        console.log(`[fileStorage] Successfully read file from: ${filePath}`)
-      }
-      
-      return JSON.parse(data) as T[]
-    } catch (error: any) {
-      // If file doesn't exist, try next path
-      if (error.code === 'ENOENT') {
-        continue
-      }
-      // Other errors, log and continue to next path
-      if (process.env.NODE_ENV === 'production') {
-        console.warn(`[fileStorage] Error reading ${filePath}:`, error.message)
-      }
+      await fs.access(filePath)
+      console.log(`[fileStorage] Found file at: ${filePath}`)
+      return filePath
+    } catch {
+      // File doesn't exist at this path, try next
       continue
     }
   }
-  
-  // If all paths failed, log and return empty array
-  console.warn(`[fileStorage] File not found in any location: ${filename}`)
-  console.warn(`[fileStorage] Tried paths:`, pathsToTry)
-  return []
+
+  return null
+}
+
+/**
+ * Read JSON data from file
+ */
+export async function readJsonFile<T>(filename: string): Promise<T[]> {
+  try {
+    // Try to find the file using multiple path strategies
+    const filePath = await findDataFile(filename)
+    
+    if (!filePath) {
+      console.warn(`[fileStorage] File not found: ${filename}`)
+      console.warn(`[fileStorage] __dirname: ${__dirname}`)
+      console.warn(`[fileStorage] process.cwd(): ${process.cwd()}`)
+      console.warn(`[fileStorage] Tried paths:`)
+      console.warn(`  - ${path.resolve(__dirname, '../../../..', 'OneApp data', filename)}`)
+      console.warn(`  - ${path.resolve(__dirname, '../../..', 'OneApp data', filename)}`)
+      console.warn(`  - ${path.resolve(process.cwd(), 'OneApp data', filename)}`)
+      console.warn(`  - ${path.resolve(process.cwd(), '..', 'OneApp data', filename)}`)
+      return []
+    }
+    
+    const data = await fs.readFile(filePath, 'utf-8')
+    const parsed = JSON.parse(data) as T[]
+    console.log(`[fileStorage] Successfully read ${parsed.length} records from ${filename}`)
+    return parsed
+  } catch (error: any) {
+    console.error(`[fileStorage] Error reading ${filename}:`, error)
+    throw error
+  }
 }
 
 /**
@@ -131,14 +83,33 @@ export async function readJsonFile<T>(filename: string): Promise<T[]> {
  */
 export async function writeJsonFile<T>(filename: string, data: T[]): Promise<void> {
   try {
-    // Ensure directory exists
-    await fs.mkdir(ONEAPP_DATA_DIR, { recursive: true })
+    // Try to find existing file to determine correct directory
+    const existingFilePath = await findDataFile(filename)
     
-    const filePath = getDataFilePath(filename)
+    let targetDir: string
+    if (existingFilePath) {
+      // Use the directory of the existing file
+      targetDir = path.dirname(existingFilePath)
+    } else {
+      // Try to find the directory by checking for other files
+      const categoriesPath = await findDataFile('categories.json')
+      if (categoriesPath) {
+        targetDir = path.dirname(categoriesPath)
+      } else {
+        // Fallback to ONEAPP_DATA_DIR
+        targetDir = ONEAPP_DATA_DIR
+      }
+    }
+    
+    // Ensure directory exists
+    await fs.mkdir(targetDir, { recursive: true })
+    
+    const filePath = path.join(targetDir, filename)
     const jsonData = JSON.stringify(data, null, 2)
     await fs.writeFile(filePath, jsonData, 'utf-8')
+    console.log(`[fileStorage] Successfully wrote ${data.length} records to ${filePath}`)
   } catch (error) {
-    console.error(`Error writing ${filename}:`, error)
+    console.error(`[fileStorage] Error writing ${filename}:`, error)
     throw error
   }
 }
