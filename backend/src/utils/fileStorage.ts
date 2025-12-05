@@ -24,14 +24,16 @@ function getDataFilePath(filename: string): string {
  */
 async function findDataFile(filename: string): Promise<string | null> {
   const possiblePaths = [
-    // From compiled dist folder (Vercel/serverless)
+    // From backend folder (when data is copied during build)
+    path.resolve(process.cwd(), 'OneApp data', filename),
+    // From compiled dist folder (Vercel/serverless - if deployed from project root)
     path.resolve(__dirname, '../../../..', 'OneApp data', filename),
     // From source folder (localhost development)
     path.resolve(__dirname, '../../..', 'OneApp data', filename),
-    // From process.cwd()
-    path.resolve(process.cwd(), 'OneApp data', filename),
-    // From backend directory
+    // From project root (if backend is deployed from root)
     path.resolve(process.cwd(), '..', 'OneApp data', filename),
+    // From dist/utils folder (alternative serverless path)
+    path.resolve(__dirname, '../../..', 'OneApp data', filename),
   ]
 
   for (const filePath of possiblePaths) {
