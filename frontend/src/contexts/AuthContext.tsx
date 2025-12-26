@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { createClient, SupabaseClient, Session } from '@supabase/supabase-js'
+import { getSupabaseClient } from '@/utils/supabase'
 
 interface User {
   id: string
@@ -11,9 +12,11 @@ interface AuthContextType {
   user: User | null
   loading: boolean
   supabase: SupabaseClient | null
-  signIn: (email: string, password: string) => Promise<void>
-  signUp: (email: string, password: string) => Promise<void>
+  signIn: (email: string, password: string, rememberMe?: boolean) => Promise<void>
+  signUp: (email: string, password: string, name?: string, inviteCode?: string) => Promise<void>
   signOut: () => Promise<void>
+  forgotPassword: (email: string) => Promise<void>
+  resetPassword: (password: string, token?: string) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -62,9 +65,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return
     }
 
+    // Helper function to fetch user name from oneapp_users table
+    const fetchUserName = async (userId: string, email?: string): Promise<string | undefined> => {
+      const supabaseClient = getSupabaseClient()
+      if (!supabaseClient) return undefined
+      
+      try {
+        const { data, error } = await supabaseClient
+          .from('oneapp_users')
+          .select('name')
+          .eq('id', userId)
+          .single()
+        
+        if (error || !data) return undefined
+        return data.name
+      } catch {
+        return undefined
+      }
+    }
+
     // Check active session
-    supabase.auth.getSession().then(({ data: { session } }: { data: { session: Session | null } }) => {
-      setUser(session?.user ? { id: session.user.id, email: session.user.email } : null)
+    supabase.auth.getSession().then(async ({ data: { session } }: { data: { session: Session | null } }) => {
+      if (session?.user) {
+        const userName = await fetchUserName(session.user.id, session.user.email)
+        setUser({ 
+          id: session.user.id, 
+          email: session.user.email,
+          name: userName || session.user.user_metadata?.full_name || session.user.user_metadata?.name
+        })
+      } else {
+        setUser(null)
+      }
       setLoading(false)
     }).catch(() => {
       setLoading(false)
@@ -73,27 +104,105 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event: string, session: Session | null) => {
-      setUser(session?.user ? { id: session.user.id, email: session.user.email } : null)
+    } = supabase.auth.onAuthStateChange(async (_event: string, session: Session | null) => {
+      if (session?.user) {
+        const userName = await fetchUserName(session.user.id, session.user.email)
+        setUser({ 
+          id: session.user.id, 
+          email: session.user.email,
+          name: userName || session.user.user_metadata?.full_name || session.user.user_metadata?.name
+        })
+      } else {
+        setUser(null)
+      }
       setLoading(false)
     })
 
     return () => subscription.unsubscribe()
   }, [])
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string, rememberMe: boolean = false) => {
     if (!supabase) {
       throw new Error('Supabase is not configured. Please set up your environment variables.')
     }
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) throw error
+    
+    // Fetch user name from oneapp_users table after signin
+    if (data.user) {
+      const supabaseClient = getSupabaseClient()
+      if (supabaseClient) {
+        try {
+          const { data: userData } = await supabaseClient
+            .from('oneapp_users')
+            .select('name')
+            .eq('id', data.user.id)
+            .single()
+          
+          if (userData?.name) {
+            setUser({ 
+              id: data.user.id, 
+              email: data.user.email,
+              name: userData.name
+            })
+          } else {
+            // Fallback to metadata if name not found in database
+            setUser({ 
+              id: data.user.id, 
+              email: data.user.email,
+              name: data.user.user_metadata?.full_name || data.user.user_metadata?.name
+            })
+          }
+        } catch {
+          // If fetching name fails, use metadata or email
+          setUser({ 
+            id: data.user.id, 
+            email: data.user.email,
+            name: data.user.user_metadata?.full_name || data.user.user_metadata?.name
+          })
+        }
+      }
+    }
+    
+    if (rememberMe) {
+      localStorage.setItem('rememberEmail', email)
+    } else {
+      localStorage.removeItem('rememberEmail')
+    }
+  }
+
+  const signUp = async (email: string, password: string, name?: string, inviteCode?: string) => {
+    if (!supabase) {
+      throw new Error('Supabase is not configured. Please set up your environment variables.')
+    }
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          name: name || email.split('@')[0],
+          invite_code: inviteCode,
+        },
+      },
+    })
     if (error) throw error
   }
 
-  const signUp = async (email: string, password: string) => {
+  const forgotPassword = async (email: string) => {
     if (!supabase) {
       throw new Error('Supabase is not configured. Please set up your environment variables.')
     }
-    const { error } = await supabase.auth.signUp({ email, password })
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    })
+    if (error) throw error
+  }
+
+  const resetPassword = async (password: string, token?: string) => {
+    if (!supabase) {
+      throw new Error('Supabase is not configured. Please set up your environment variables.')
+    }
+    const { error } = await supabase.auth.updateUser({ password })
     if (error) throw error
   }
 
@@ -114,7 +223,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       supabase: supabase || null as any, 
       signIn, 
       signUp, 
-      signOut 
+      signOut,
+      forgotPassword,
+      resetPassword
     }}>
       {children}
     </AuthContext.Provider>

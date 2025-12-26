@@ -132,14 +132,44 @@ This means the `VITE_SUPABASE_URL` is either:
 3. Make sure it's exactly: `https://your-project-id.supabase.co` (no spaces, no quotes)
 4. Redeploy your project
 
+## Backend Environment Variables (for Local Development)
+
+If you're running the backend server locally, create a `backend/.env` file:
+
+```env
+SUPABASE_URL=https://your-project-id.supabase.co
+SUPABASE_KEY=your-anon-key-here
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key-here
+```
+
+**To get the Service Role Key:**
+1. Go to Supabase Dashboard → **Settings** → **API**
+2. Find the **"service_role" secret** key (⚠️ **NEVER expose this in frontend!**)
+3. Copy it to `SUPABASE_SERVICE_ROLE_KEY` in your backend `.env` file
+
+**Why Service Role Key?**
+- Used by the backend to auto-confirm user emails during signup (skips email verification)
+- Has admin privileges, so it can bypass Row Level Security (RLS)
+- **MUST** be kept secret and only used on the backend server
+
+**Note:** If `SUPABASE_SERVICE_ROLE_KEY` is not set, users will need to confirm their email manually. The signup will still work, but they'll need to click the confirmation link in their email.
+
 ## Example Values
 
 Here's what your variables should look like (with example values):
 
+### Frontend (`.env` in `frontend/` folder):
 ```env
 VITE_SUPABASE_URL=https://abcdefghijklmnop.supabase.co
 VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiY2RlZmdoaWprbG1ub3AiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTY0MDAwMDAwMCwiZXhwIjoxOTU1NTY0MDAwfQ.example
 VITE_API_URL=
+```
+
+### Backend (`.env` in `backend/` folder):
+```env
+SUPABASE_URL=https://abcdefghijklmnop.supabase.co
+SUPABASE_KEY=your-anon-key-here
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-secret-key-here
 ```
 
 **Important:** Never commit your actual `.env` file to git. Only commit `.env.example` as a template.

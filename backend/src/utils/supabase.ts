@@ -25,7 +25,9 @@ console.log('[Supabase Config]', {
 })
 
 let supabase: SupabaseClient | null = null
+let supabaseAdmin: SupabaseClient | null = null
 
+// Regular client (uses anon key or service_role key)
 if (supabaseUrl && supabaseKey) {
   supabase = createClient(supabaseUrl, supabaseKey, {
     auth: {
@@ -40,6 +42,21 @@ if (supabaseUrl && supabaseKey) {
   console.warn('   Some features (auth, database) will not work without Supabase.')
 }
 
-export { supabase }
+// Admin client (uses service_role key for admin operations like auto-confirming users)
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+if (supabaseUrl && supabaseServiceRoleKey) {
+  supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  })
+  console.log('✅ Supabase Admin client initialized')
+} else if (supabaseUrl && !supabaseServiceRoleKey) {
+  console.warn('⚠️  SUPABASE_SERVICE_ROLE_KEY not set. Email auto-confirmation will be disabled.')
+  console.warn('   To enable auto-confirmation, add SUPABASE_SERVICE_ROLE_KEY to your .env file.')
+}
+
+export { supabase, supabaseAdmin }
 export default supabase
 

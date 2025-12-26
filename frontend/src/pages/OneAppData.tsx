@@ -26,6 +26,7 @@ import {
 import { ToastContainer, type Toast } from '@/components/Toast'
 import styles from './OneAppData.module.css'
 import supabaseLogo from '@/logo/supabase.png'
+import oneAppLogo from '@/logo/icon.png'
 
 type DatabaseType = 'oneapp' | 'shared'
 
@@ -378,7 +379,7 @@ export function OneAppData() {
     tool: 'Supabase',
     apiUrl: 'fzxetyomesoojyhhrhnh',
     apiKey: '••••••••••••',
-    connected: true,
+    connected: false, // Will be checked on mount
     toolUrl: 'https://supabase.com',
   })
 
@@ -404,6 +405,43 @@ export function OneAppData() {
     const i = Math.floor(Math.log(bytes) / Math.log(k))
     return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
   }
+
+  // Check Supabase connection status when switching to shared database
+  useEffect(() => {
+    if (activeDatabase === 'shared') {
+      const checkConnection = async () => {
+        const supabaseClient = getSupabaseClient()
+        if (!supabaseClient) {
+          setSharedDbConfig(prev => ({ ...prev, connected: false }))
+          return
+        }
+
+        // Test connection with a simple query
+        try {
+          const { error } = await supabaseClient
+            .from('oneapp_users')
+            .select('count')
+            .limit(1)
+
+          if (error) {
+            // If it's a "relation does not exist" error, connection is still valid
+            if (error.code === 'PGRST116' || error.message?.includes('relation') || error.message?.includes('does not exist')) {
+              setSharedDbConfig(prev => ({ ...prev, connected: true }))
+            } else {
+              setSharedDbConfig(prev => ({ ...prev, connected: false }))
+            }
+          } else {
+            setSharedDbConfig(prev => ({ ...prev, connected: true }))
+          }
+        } catch (error: any) {
+          console.error('Connection check error:', error)
+          setSharedDbConfig(prev => ({ ...prev, connected: false }))
+        }
+      }
+
+      checkConnection()
+    }
+  }, [activeDatabase])
 
   // Fetch schema SQL from database
   useEffect(() => {
@@ -993,15 +1031,43 @@ CREATE TRIGGER update_backup_versions_updated_at BEFORE UPDATE ON backup_version
     }
   }
 
-  const handleCheckConnection = () => {
-    // Simulate connection check
-    console.log('Checking connection...')
+  const handleCheckConnection = async () => {
     setShowMoreMenu(false)
-    // Simulate async check
-    setTimeout(() => {
-      setSharedDbConfig({ ...sharedDbConfig, connected: true })
-      showToast('Connection check successful', 'success')
-    }, 1000)
+    showToast('Checking connection...', 'info')
+    
+    try {
+      const supabaseClient = getSupabaseClient()
+      if (!supabaseClient) {
+        setSharedDbConfig({ ...sharedDbConfig, connected: false })
+        showToast('Supabase not configured. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY', 'error')
+        return
+      }
+
+      // Test connection by making a simple query
+      const { data, error } = await supabaseClient
+        .from('oneapp_users')
+        .select('count')
+        .limit(1)
+
+      if (error) {
+        // Check if it's a "relation does not exist" error (table not created yet)
+        if (error.code === 'PGRST116' || error.message?.includes('relation') || error.message?.includes('does not exist')) {
+          // Table doesn't exist, but connection works
+          setSharedDbConfig({ ...sharedDbConfig, connected: true })
+          showToast('Connected (but tables may not be created yet)', 'warning')
+        } else {
+          setSharedDbConfig({ ...sharedDbConfig, connected: false })
+          showToast(`Connection failed: ${error.message}`, 'error')
+        }
+      } else {
+        setSharedDbConfig({ ...sharedDbConfig, connected: true })
+        showToast('Connection check successful', 'success')
+      }
+    } catch (error: any) {
+      console.error('Connection check error:', error)
+      setSharedDbConfig({ ...sharedDbConfig, connected: false })
+      showToast(`Connection check failed: ${error.message || 'Unknown error'}`, 'error')
+    }
   }
 
   const handleOpenTool = () => {
@@ -2030,7 +2096,7 @@ CREATE TRIGGER update_backup_versions_updated_at BEFORE UPDATE ON backup_version
           onClick={() => setActiveDatabase('oneapp')}
         >
           <div className={styles.databaseTypeIcon}>
-            <IconDatabase />
+            <img src={oneAppLogo} alt="OneApp" className={styles.databaseTypeLogo} />
           </div>
           <div className={styles.databaseTypeInfo}>
             <h2 className={styles.databaseTypeName}>OneApp Database</h2>

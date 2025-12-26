@@ -46,6 +46,8 @@ import {
   IconCopy,
   IconMaximize,
   IconMinimize,
+  IconSparkles,
+  IconBrain,
 } from '@/components/Icons'
 
 export const iconMap: Record<string, React.ComponentType<React.SVGProps<SVGSVGElement>>> = {
@@ -95,6 +97,8 @@ export const iconMap: Record<string, React.ComponentType<React.SVGProps<SVGSVGEl
   IconCopy,
   IconMaximize,
   IconMinimize,
+  IconSparkles,
+  IconBrain,
 }
 
 export function getIcon(iconName: string): React.ComponentType<React.SVGProps<SVGSVGElement>> {

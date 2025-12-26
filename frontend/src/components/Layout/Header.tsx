@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { 
   IconDashboard, 
-  IconAI, 
+  IconSparkles,
   IconModules, 
   IconSettings, 
   IconMenu, 
@@ -74,7 +74,7 @@ export function Header({ title, breadcrumbs, mobileMenuOpen, onMobileMenuToggle,
       return <IconDatabase />
     }
     if (location.pathname.startsWith('/ai')) {
-      return <IconAI />
+      return <IconSparkles />
     }
     if (location.pathname.startsWith('/modules')) {
       return <IconModules />
@@ -104,7 +104,7 @@ export function Header({ title, breadcrumbs, mobileMenuOpen, onMobileMenuToggle,
     }
   }
 
-  const userName = user?.email?.split('@')[0] || user?.name || 'User'
+  const userName = user?.name || user?.email?.split('@')[0] || 'User'
   const avatarInitial = getAvatarInitial(userName)
   const avatarColor = getAvatarColor(userName)
 

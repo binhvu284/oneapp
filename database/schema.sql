@@ -1,167 +1,121 @@
--- OneApp Database Schema
--- PostgreSQL (Supabase)
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
 
--- Enable UUID extension
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
--- OneApp Users Table
--- Stores OneApp user information and data
-CREATE TABLE IF NOT EXISTS oneapp_users (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  name VARCHAR(255) NOT NULL,
-  email VARCHAR(255) NOT NULL UNIQUE,
-  phone VARCHAR(20),
-  user_data JSONB DEFAULT '{}'::jsonb, -- Flexible JSONB field to connect to other tables and store user-related data
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE public.ai_interactions (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL,
+  role character varying NOT NULL CHECK (role::text = ANY (ARRAY['user'::character varying, 'assistant'::character varying]::text[])),
+  content text NOT NULL,
+  metadata jsonb DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT ai_interactions_pkey PRIMARY KEY (id),
+  CONSTRAINT ai_interactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
-
--- Modules Table
--- Stores information about available modules
-CREATE TABLE IF NOT EXISTS modules (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  name VARCHAR(100) NOT NULL UNIQUE,
-  description TEXT,
-  status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('active', 'inactive', 'pending')),
-  icon VARCHAR(10),
-  version VARCHAR(20) DEFAULT '1.0.0',
-  dependencies TEXT[], -- Array of module IDs this module depends on
-  config JSONB DEFAULT '{}'::jsonb, -- Module-specific configuration
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE public.analytics (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL,
+  event_type character varying NOT NULL,
+  module_id uuid,
+  metadata jsonb DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT analytics_pkey PRIMARY KEY (id),
+  CONSTRAINT analytics_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
+  CONSTRAINT analytics_module_id_fkey FOREIGN KEY (module_id) REFERENCES public.modules(id)
 );
-
--- Module Config Table
--- Stores user-specific module configurations
-CREATE TABLE IF NOT EXISTS module_config (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  module_id UUID NOT NULL REFERENCES modules(id) ON DELETE CASCADE,
-  config JSONB DEFAULT '{}'::jsonb,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE(user_id, module_id)
+CREATE TABLE public.apis (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  name character varying NOT NULL,
+  type character varying NOT NULL,
+  api_url text NOT NULL,
+  api_key text NOT NULL,
+  status character varying NOT NULL DEFAULT 'unknown'::character varying CHECK (status::text = ANY (ARRAY['connected'::character varying, 'disconnected'::character varying, 'error'::character varying, 'unknown'::character varying]::text[])),
+  last_checked timestamp with time zone,
+  app_source character varying,
+  description text,
+  enabled boolean DEFAULT true,
+  metadata jsonb DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT apis_pkey PRIMARY KEY (id)
 );
-
--- AI Interactions Table
--- Stores AI assistant conversation history
-CREATE TABLE IF NOT EXISTS ai_interactions (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  role VARCHAR(20) NOT NULL CHECK (role IN ('user', 'assistant')),
-  content TEXT NOT NULL,
-  metadata JSONB DEFAULT '{}'::jsonb, -- Additional context, module references, etc.
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE public.backup_versions (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  name character varying NOT NULL,
+  size bigint NOT NULL,
+  storage_url text,
+  description text,
+  is_current boolean DEFAULT false,
+  metadata jsonb DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT backup_versions_pkey PRIMARY KEY (id)
 );
-
--- Tasks Table
--- Task management data
-CREATE TABLE IF NOT EXISTS tasks (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  title VARCHAR(255) NOT NULL,
-  description TEXT,
-  status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'in-progress', 'completed', 'cancelled')),
-  priority VARCHAR(10) NOT NULL DEFAULT 'medium' CHECK (priority IN ('low', 'medium', 'high')),
-  due_date TIMESTAMP WITH TIME ZONE,
-  completed_at TIMESTAMP WITH TIME ZONE,
-  metadata JSONB DEFAULT '{}'::jsonb, -- Additional task data
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE public.files (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL,
+  name character varying NOT NULL,
+  path text NOT NULL,
+  size bigint NOT NULL,
+  mime_type character varying,
+  storage_url text,
+  category character varying,
+  tags ARRAY,
+  metadata jsonb DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT files_pkey PRIMARY KEY (id),
+  CONSTRAINT files_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
-
--- Files Table
--- File storage metadata
-CREATE TABLE IF NOT EXISTS files (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  name VARCHAR(255) NOT NULL,
-  path TEXT NOT NULL,
-  size BIGINT NOT NULL,
-  mime_type VARCHAR(100),
-  storage_url TEXT, -- Supabase Storage URL
-  category VARCHAR(50), -- e.g., 'document', 'image', 'video'
-  tags TEXT[],
-  metadata JSONB DEFAULT '{}'::jsonb,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE public.module_config (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL,
+  module_id uuid NOT NULL,
+  config jsonb DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT module_config_pkey PRIMARY KEY (id),
+  CONSTRAINT module_config_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
+  CONSTRAINT module_config_module_id_fkey FOREIGN KEY (module_id) REFERENCES public.modules(id)
 );
-
--- Analytics Table
--- Usage analytics and metrics
-CREATE TABLE IF NOT EXISTS analytics (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  event_type VARCHAR(50) NOT NULL, -- e.g., 'module_used', 'task_created', 'file_uploaded'
-  module_id UUID REFERENCES modules(id) ON DELETE SET NULL,
-  metadata JSONB DEFAULT '{}'::jsonb,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE public.modules (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  name character varying NOT NULL UNIQUE,
+  description text,
+  status character varying NOT NULL DEFAULT 'pending'::character varying CHECK (status::text = ANY (ARRAY['active'::character varying, 'inactive'::character varying, 'pending'::character varying]::text[])),
+  icon character varying,
+  version character varying DEFAULT '1.0.0'::character varying,
+  dependencies ARRAY,
+  config jsonb DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT modules_pkey PRIMARY KEY (id)
 );
-
--- Backup Versions Table
--- Stores database backup versions for Shared Database
-CREATE TABLE IF NOT EXISTS backup_versions (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  name VARCHAR(255) NOT NULL,
-  size BIGINT NOT NULL, -- Size in bytes
-  storage_url TEXT, -- Supabase Storage URL for the backup ZIP file
-  description TEXT,
-  is_current BOOLEAN DEFAULT FALSE, -- Whether this is the current active version
-  metadata JSONB DEFAULT '{}'::jsonb, -- Additional backup metadata
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE public.oneapp_users (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  name character varying NOT NULL,
+  email character varying NOT NULL UNIQUE,
+  phone character varying,
+  password text,
+  invite_code character varying,
+  email_verified boolean DEFAULT false,
+  last_login timestamp with time zone,
+  user_data jsonb DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT oneapp_users_pkey PRIMARY KEY (id)
 );
-
--- Indexes for performance
-CREATE INDEX IF NOT EXISTS idx_oneapp_users_email ON oneapp_users(email);
-CREATE INDEX IF NOT EXISTS idx_oneapp_users_created_at ON oneapp_users(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_module_config_user_id ON module_config(user_id);
-CREATE INDEX IF NOT EXISTS idx_module_config_module_id ON module_config(module_id);
-CREATE INDEX IF NOT EXISTS idx_ai_interactions_user_id ON ai_interactions(user_id);
-CREATE INDEX IF NOT EXISTS idx_ai_interactions_created_at ON ai_interactions(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_tasks_user_id ON tasks(user_id);
-CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
-CREATE INDEX IF NOT EXISTS idx_tasks_due_date ON tasks(due_date);
-CREATE INDEX IF NOT EXISTS idx_files_user_id ON files(user_id);
-CREATE INDEX IF NOT EXISTS idx_files_category ON files(category);
-CREATE INDEX IF NOT EXISTS idx_analytics_user_id ON analytics(user_id);
-CREATE INDEX IF NOT EXISTS idx_analytics_event_type ON analytics(event_type);
-CREATE INDEX IF NOT EXISTS idx_analytics_created_at ON analytics(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_backup_versions_is_current ON backup_versions(is_current);
-CREATE INDEX IF NOT EXISTS idx_backup_versions_created_at ON backup_versions(created_at DESC);
-
--- Function to update updated_at timestamp
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = CURRENT_TIMESTAMP;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- Triggers to automatically update updated_at
-CREATE TRIGGER update_oneapp_users_updated_at BEFORE UPDATE ON oneapp_users
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_modules_updated_at BEFORE UPDATE ON modules
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_module_config_updated_at BEFORE UPDATE ON module_config
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_tasks_updated_at BEFORE UPDATE ON tasks
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_files_updated_at BEFORE UPDATE ON files
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_backup_versions_updated_at BEFORE UPDATE ON backup_versions
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
--- Insert default modules
-INSERT INTO modules (name, description, status, icon, version) VALUES
-  ('AI Assistant', 'Personal AI assistant for task management and module control', 'active', '🤖', '1.0.0'),
-  ('Storage', 'File and data storage management', 'pending', '📦', '0.0.0'),
-  ('Analytics', 'Data analytics and insights', 'pending', '📊', '0.0.0')
-ON CONFLICT (name) DO NOTHING;
-
+CREATE TABLE public.tasks (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL,
+  title character varying NOT NULL,
+  description text,
+  status character varying NOT NULL DEFAULT 'pending'::character varying CHECK (status::text = ANY (ARRAY['pending'::character varying, 'in-progress'::character varying, 'completed'::character varying, 'cancelled'::character varying]::text[])),
+  priority character varying NOT NULL DEFAULT 'medium'::character varying CHECK (priority::text = ANY (ARRAY['low'::character varying, 'medium'::character varying, 'high'::character varying]::text[])),
+  due_date timestamp with time zone,
+  completed_at timestamp with time zone,
+  metadata jsonb DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT tasks_pkey PRIMARY KEY (id),
+  CONSTRAINT tasks_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);

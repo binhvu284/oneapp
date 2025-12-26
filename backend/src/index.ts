@@ -12,6 +12,8 @@ import { oneappDataRoutes } from './routes/oneapp-data'
 import { inUseAppRoutes } from './routes/in-use-app'
 import { backupVersionsRoutes } from './routes/backup-versions'
 import { schemaRoutes } from './routes/schema'
+import { apiRoutes } from './routes/apis'
+import { aiAgentsRoutes } from './routes/ai-agents'
 
 // Load environment variables
 const envResult = dotenv.config()
@@ -50,6 +52,8 @@ app.use('/api/oneapp-data', oneappDataRoutes)
 app.use('/api/in-use-app', inUseAppRoutes)
 app.use('/api/backup-versions', backupVersionsRoutes)
 app.use('/api/schema', schemaRoutes)
+app.use('/api/apis', apiRoutes)
+app.use('/api/ai-agents', aiAgentsRoutes)
 
 // Error handling middleware (must be last)
 app.use(errorHandler)
