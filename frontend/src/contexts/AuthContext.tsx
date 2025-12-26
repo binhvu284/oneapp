@@ -18,13 +18,37 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || ''
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+// Get and trim environment variables
+const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL || '').trim()
+const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim()
 
-// Create Supabase client only if credentials are provided
-const supabase = supabaseUrl && supabaseAnonKey 
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : null as any // Will be handled gracefully in the component
+// Validate URL format
+function isValidUrl(url: string): boolean {
+  if (!url) return false
+  try {
+    const parsedUrl = new URL(url)
+    return parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
+// Create Supabase client only if credentials are provided and valid
+let supabase: SupabaseClient | null = null
+
+if (supabaseUrl && supabaseAnonKey) {
+  if (isValidUrl(supabaseUrl)) {
+    try {
+      supabase = createClient(supabaseUrl, supabaseAnonKey)
+    } catch (error: any) {
+      console.error('❌ Failed to initialize Supabase client in AuthContext:', error.message)
+      supabase = null
+    }
+  } else {
+    console.error('❌ Invalid Supabase URL format in AuthContext. Must be a valid HTTP or HTTPS URL.')
+    supabase = null
+  }
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
