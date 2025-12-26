@@ -122,13 +122,6 @@ function parseSQLSchema(sql: string): DatabaseSchema {
     const tableBody = match[2]
     const fields: Array<{ name: string; type: string; required: boolean; description?: string }> = []
 
-    // Extract comment before table (description) - look backwards from match
-    const beforeMatch = sql.substring(Math.max(0, match.index - 200), match.index)
-    const tableCommentMatch = beforeMatch.match(/--\s*(.+?)(?:\n|$)/gi)
-    const tableDescription = tableCommentMatch && tableCommentMatch.length > 0 
-      ? tableCommentMatch[tableCommentMatch.length - 1].replace(/^--\s*/, '').trim() 
-      : undefined
-
     // Parse fields - handle multi-line field definitions
     // Split by comma, but be careful with nested parentheses
     const fieldParts: string[] = []
@@ -740,9 +733,11 @@ export function OneAppData() {
       const uploadedBackup = {
         id: `backup-${Date.now()}`,
         name: file.name.replace('.zip', ''),
-        size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
+        size: file.size,
+        sizeFormatted: formatBytes(file.size),
         lastUpdate: new Date().toISOString(),
         createdAt: new Date().toISOString(),
+        is_current: false,
       }
       setBackups(prev => [uploadedBackup, ...prev])
       setShowUploadBackupModal(false)
