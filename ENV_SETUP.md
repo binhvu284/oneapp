@@ -100,6 +100,8 @@ After setting up environment variables:
 2. **Check environment**: Make sure variables are set for "Production"
 3. **Redeploy**: Environment variables only apply to new deployments
 4. **Check for typos**: Variable names are case-sensitive
+5. **Check for whitespace**: Make sure there are no leading/trailing spaces in values
+6. **Verify URL format**: Must be a valid HTTP/HTTPS URL (e.g., `https://xxxxx.supabase.co`)
 
 ### Still seeing "Supabase not configured" error?
 
@@ -109,6 +111,20 @@ After setting up environment variables:
    - `VITE_SUPABASE_ANON_KEY` (not `SUPABASE_ANON_KEY`)
 3. Make sure you redeployed after adding variables
 4. Check browser console for detailed error messages
+5. Verify URL format: Should start with `https://` and end with `.supabase.co`
+
+### Seeing "Invalid supabaseUrl" error?
+
+This means the `VITE_SUPABASE_URL` is either:
+- Empty or not set
+- Has invalid format (not a valid HTTP/HTTPS URL)
+- Has leading/trailing whitespace
+
+**Fix:**
+1. Go to Vercel → Settings → Environment Variables
+2. Check `VITE_SUPABASE_URL` value
+3. Make sure it's exactly: `https://your-project-id.supabase.co` (no spaces, no quotes)
+4. Redeploy your project
 
 ## Example Values
 
