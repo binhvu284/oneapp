@@ -182,12 +182,24 @@ export function OneAppDeveloper() {
     const fetchCategories = async () => {
       setLoadingCategories(true)
       try {
+        // Only make API call if API URL is configured (development or production with backend)
+        if (!import.meta.env.VITE_API_URL && !import.meta.env.DEV) {
+          console.warn('⚠️  API URL not configured. Categories cannot be loaded in production without backend.')
+          showToast('Backend API not configured. Categories feature requires backend deployment.', 'error', 8000)
+          setDbCategories([])
+          return
+        }
+        
         const response = await api.get('/categories')
         if (response.data.success) {
           setDbCategories(response.data.data || [])
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error fetching categories:', error)
+        // Show helpful error message in production
+        if (!import.meta.env.DEV) {
+          showToast('Failed to load categories. Backend API may not be deployed.', 'error', 8000)
+        }
         // Fallback to empty array if API fails
         setDbCategories([])
       } finally {

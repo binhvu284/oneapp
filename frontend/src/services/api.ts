@@ -1,6 +1,7 @@
 import axios from 'axios'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
+// Only use API URL if explicitly set, otherwise use empty string to prevent localhost calls in production
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:3001/api' : '')
 
 const api = axios.create({
   baseURL: API_URL,
@@ -8,6 +9,11 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
 })
+
+// Prevent API calls in production if no API URL is configured
+if (!API_URL && !import.meta.env.DEV) {
+  console.warn('⚠️  API URL not configured. API calls will fail. Use Supabase direct connection instead.')
+}
 
 // Request interceptor for auth tokens
 api.interceptors.request.use(

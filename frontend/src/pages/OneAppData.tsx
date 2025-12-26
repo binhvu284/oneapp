@@ -492,11 +492,21 @@ CREATE TRIGGER update_backup_versions_updated_at BEFORE UPDATE ON backup_version
             }).catch(() => {})
             // #endregion
           } else {
-            // Fallback to API if Supabase not configured
-            const response = await api.get('/schema')
-            if (response.data.success) {
-              setSchemaSQL(response.data.data.sql)
-              setSchemaViewMode('sql')
+            // Only fallback to API in development, not in production
+            if (import.meta.env.DEV && import.meta.env.VITE_API_URL) {
+              try {
+                const response = await api.get('/schema')
+                if (response.data.success) {
+                  setSchemaSQL(response.data.data.sql)
+                  setSchemaViewMode('sql')
+                }
+              } catch (apiError) {
+                console.error('API fallback also failed:', apiError)
+                showToast('Supabase not configured. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Vercel environment variables.', 'error', 8000)
+              }
+            } else {
+              // In production, show helpful error if Supabase not configured
+              showToast('Supabase not configured. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Vercel environment variables.', 'error', 8000)
             }
           }
         } catch (error: any) {
@@ -610,28 +620,42 @@ CREATE TRIGGER update_backup_versions_updated_at BEFORE UPDATE ON backup_version
               setCurrentVersion('v1.0.0')
             }
           } else {
-            // Fallback to API if Supabase not configured
-            const response = await api.get('/backup-versions')
-            if (response.data.success) {
-              const backupsArray = response.data.data || []
-              const backupsData = backupsArray.map((backup: any) => ({
-                id: backup.id,
-                name: backup.name,
-                size: backup.size,
-                sizeFormatted: formatBytes(backup.size),
-                lastUpdate: backup.updated_at || backup.created_at,
-                createdAt: backup.created_at,
-                is_current: backup.is_current,
-                storage_url: backup.storage_url,
-              }))
-              setBackups(backupsData)
-              
-              const currentBackup = backupsData.find((b: any) => b.is_current)
-              if (currentBackup) {
-                setCurrentVersion(currentBackup.name)
-              } else {
+            // Only fallback to API in development, not in production
+            if (import.meta.env.DEV && import.meta.env.VITE_API_URL) {
+              try {
+                const response = await api.get('/backup-versions')
+                if (response.data.success) {
+                  const backupsArray = response.data.data || []
+                  const backupsData = backupsArray.map((backup: any) => ({
+                    id: backup.id,
+                    name: backup.name,
+                    size: backup.size,
+                    sizeFormatted: formatBytes(backup.size),
+                    lastUpdate: backup.updated_at || backup.created_at,
+                    createdAt: backup.created_at,
+                    is_current: backup.is_current,
+                    storage_url: backup.storage_url,
+                  }))
+                  setBackups(backupsData)
+                  
+                  const currentBackup = backupsData.find((b: any) => b.is_current)
+                  if (currentBackup) {
+                    setCurrentVersion(currentBackup.name)
+                  } else {
+                    setCurrentVersion('v1.0.0')
+                  }
+                }
+              } catch (apiError) {
+                console.error('API fallback also failed:', apiError)
+                showToast('Supabase not configured. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Vercel environment variables.', 'error', 8000)
+                setBackups([])
                 setCurrentVersion('v1.0.0')
               }
+            } else {
+              // In production, show helpful error if Supabase not configured
+              showToast('Supabase not configured. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Vercel environment variables.', 'error', 8000)
+              setBackups([])
+              setCurrentVersion('v1.0.0')
             }
           }
         } catch (error: any) {
@@ -940,30 +964,38 @@ CREATE TRIGGER update_backup_versions_updated_at BEFORE UPDATE ON backup_version
           showToast('Backup created successfully', 'success')
         }
       } else {
-        // Fallback to API if Supabase not configured
-        const estimatedSize = 2.5 * 1024 * 1024 // 2.5 MB
-        const response = await api.post('/backup-versions', {
-          name: newBackupName,
-          size: estimatedSize,
-          description: 'Manual backup created from OneApp Data',
-          is_current: false,
-        })
-        
-        if (response.data.success) {
-          const newBackup = {
-            id: response.data.data.id,
-            name: response.data.data.name,
-            size: response.data.data.size,
-            sizeFormatted: formatBytes(response.data.data.size),
-            lastUpdate: response.data.data.updated_at || response.data.data.created_at,
-            createdAt: response.data.data.created_at,
-            is_current: response.data.data.is_current,
-            storage_url: response.data.data.storage_url,
+        // Only fallback to API in development
+        if (import.meta.env.DEV && import.meta.env.VITE_API_URL) {
+          try {
+            const estimatedSize = 2.5 * 1024 * 1024 // 2.5 MB
+            const response = await api.post('/backup-versions', {
+              name: newBackupName,
+              size: estimatedSize,
+              description: 'Manual backup created from OneApp Data',
+              is_current: false,
+            })
+            
+            if (response.data.success) {
+              const newBackup = {
+                id: response.data.data.id,
+                name: response.data.data.name,
+                size: response.data.data.size,
+                sizeFormatted: formatBytes(response.data.data.size),
+                lastUpdate: response.data.data.updated_at || response.data.data.created_at,
+                createdAt: response.data.data.created_at,
+                is_current: response.data.data.is_current,
+                storage_url: response.data.data.storage_url,
+              }
+              setBackups(prev => [newBackup, ...prev])
+              setNewBackupName('')
+              setShowCreateBackupModal(false)
+              showToast('Backup created successfully', 'success')
+            }
+          } catch (apiError) {
+            throw new Error('Supabase not configured. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Vercel environment variables.')
           }
-          setBackups(prev => [newBackup, ...prev])
-          setNewBackupName('')
-          setShowCreateBackupModal(false)
-          showToast('Backup created successfully', 'success')
+        } else {
+          throw new Error('Supabase not configured. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Vercel environment variables.')
         }
       }
     } catch (error: any) {
@@ -1075,15 +1107,23 @@ CREATE TRIGGER update_backup_versions_updated_at BEFORE UPDATE ON backup_version
         setCurrentVersion(backup.name)
         showToast('Backup applied successfully', 'success')
       } else {
-        // Fallback to API if Supabase not configured
-        const response = await api.put(`/backup-versions/${backupId}/apply`)
-        if (response.data.success) {
-          setBackups(prev => prev.map(b => ({
-            ...b,
-            is_current: b.id === backupId,
-          })))
-          setCurrentVersion(backup.name)
-          showToast('Backup applied successfully', 'success')
+        // Only fallback to API in development
+        if (import.meta.env.DEV && import.meta.env.VITE_API_URL) {
+          try {
+            const response = await api.put(`/backup-versions/${backupId}/apply`)
+            if (response.data.success) {
+              setBackups(prev => prev.map(b => ({
+                ...b,
+                is_current: b.id === backupId,
+              })))
+              setCurrentVersion(backup.name)
+              showToast('Backup applied successfully', 'success')
+            }
+          } catch (apiError) {
+            throw new Error('Supabase not configured. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Vercel environment variables.')
+          }
+        } else {
+          throw new Error('Supabase not configured. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Vercel environment variables.')
         }
       }
     } catch (error: any) {
