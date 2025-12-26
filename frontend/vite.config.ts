@@ -20,13 +20,10 @@ export default defineConfig({
             if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
               return 'react-vendor'
             }
-            if (id.includes('@supabase')) {
-              return 'supabase-vendor'
-            }
             if (id.includes('axios') || id.includes('jszip')) {
               return 'utils-vendor'
             }
-            // Other node_modules go into vendor chunk
+            // Other node_modules go into vendor chunk (including Supabase if used)
             return 'vendor'
           }
         },
