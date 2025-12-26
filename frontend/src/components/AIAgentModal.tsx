@@ -7,8 +7,6 @@ import {
   IconTrash,
   IconEye,
   IconEyeOff,
-  IconDownload,
-  IconRefreshCw,
 } from '@/components/Icons'
 import { getSupabaseClient } from '@/utils/supabase'
 import styles from './AIAgentModal.module.css'
@@ -92,14 +90,14 @@ export function AIAgentModal({ agent, onClose, onSave }: AIAgentModalProps) {
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
       const filePath = `agent-avatars/${agent?.id || 'temp'}/${fileName}`
 
-      const { data, error } = await supabaseClient.storage
+      const { error: uploadError } = await supabaseClient.storage
         .from('agent-assets')
         .upload(filePath, file, {
           cacheControl: '3600',
           upsert: false,
         })
 
-      if (error) throw error
+      if (uploadError) throw uploadError
 
       const { data: urlData } = supabaseClient.storage
         .from('agent-assets')
@@ -129,14 +127,14 @@ export function AIAgentModal({ agent, onClose, onSave }: AIAgentModalProps) {
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
       const filePath = `agent-knowledge/${agent?.id || 'temp'}/${fileName}`
 
-      const { data, error } = await supabaseClient.storage
+      const { error: uploadError } = await supabaseClient.storage
         .from('agent-assets')
         .upload(filePath, file, {
           cacheControl: '3600',
           upsert: false,
         })
 
-      if (error) throw error
+      if (uploadError) throw uploadError
 
       const { data: urlData } = supabaseClient.storage
         .from('agent-assets')

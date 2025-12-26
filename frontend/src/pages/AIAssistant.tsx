@@ -4,7 +4,7 @@ import { AIAgentManagement } from '@/components/AIAgentManagement'
 import { AIChat } from '@/components/AIChat'
 import { AIPopupPage } from '@/components/AIPopupPage'
 import { AITranslate } from '@/components/AITranslate'
-import { IconMessage, IconMaximize, IconLanguage, IconArrowLeft, IconSearch } from '@/components/Icons'
+import { IconMessage, IconMaximize, IconLanguage, IconSearch } from '@/components/Icons'
 import styles from './AIAssistant.module.css'
 
 type Section = 'functions' | 'agents'

@@ -1044,7 +1044,7 @@ CREATE TRIGGER update_backup_versions_updated_at BEFORE UPDATE ON backup_version
       }
 
       // Test connection by making a simple query
-      const { data, error } = await supabaseClient
+      const { error } = await supabaseClient
         .from('oneapp_users')
         .select('count')
         .limit(1)

@@ -8,6 +8,7 @@ interface Agent {
   model: string
   is_active: boolean
   is_default: boolean
+  memory_enabled: boolean
   memory_size_bytes: number
   memory_token_estimate: number
   description?: string

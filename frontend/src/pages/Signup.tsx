@@ -10,7 +10,7 @@ import styles from './Signup.module.css'
 
 export function Signup() {
   const navigate = useNavigate()
-  const { signUp, signIn } = useAuth()
+  const { signIn } = useAuth()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')

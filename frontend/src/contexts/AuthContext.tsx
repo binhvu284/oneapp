@@ -66,7 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     // Helper function to fetch user name from oneapp_users table
-    const fetchUserName = async (userId: string, email?: string): Promise<string | undefined> => {
+    const fetchUserName = async (userId: string): Promise<string | undefined> => {
       const supabaseClient = getSupabaseClient()
       if (!supabaseClient) return undefined
       
@@ -87,7 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Check active session
     supabase.auth.getSession().then(async ({ data: { session } }: { data: { session: Session | null } }) => {
       if (session?.user) {
-        const userName = await fetchUserName(session.user.id, session.user.email)
+        const userName = await fetchUserName(session.user.id)
         setUser({ 
           id: session.user.id, 
           email: session.user.email,
@@ -106,7 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event: string, session: Session | null) => {
       if (session?.user) {
-        const userName = await fetchUserName(session.user.id, session.user.email)
+        const userName = await fetchUserName(session.user.id)
         setUser({ 
           id: session.user.id, 
           email: session.user.email,
@@ -198,7 +198,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw error
   }
 
-  const resetPassword = async (password: string, token?: string) => {
+  const resetPassword = async (password: string) => {
     if (!supabase) {
       throw new Error('Supabase is not configured. Please set up your environment variables.')
     }

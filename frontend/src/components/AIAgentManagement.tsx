@@ -9,9 +9,6 @@ import {
   IconPlus,
   IconSearch,
   IconFilter,
-  IconCheckCircle,
-  IconXCircle,
-  IconRefreshCw,
 } from '@/components/Icons'
 import styles from './AIAgentManagement.module.css'
 
@@ -43,7 +40,6 @@ export function AIAgentManagement() {
   const [showMemoryView, setShowMemoryView] = useState(false)
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null)
   const [viewingMemoryAgent, setViewingMemoryAgent] = useState<Agent | null>(null)
-  const [testingAgentId, setTestingAgentId] = useState<string | null>(null)
   
   // State for default models (Gemini, ChatGPT)
   const [geminiApiKey, setGeminiApiKey] = useState('')
@@ -78,8 +74,8 @@ export function AIAgentManagement() {
         setAgents(allAgents)
         
         // Initialize default models if they don't exist
-        const hasGemini = allAgents.some(a => a.is_default && (a.model === 'gemini' || a.model_provider === 'google'))
-        const hasChatgpt = allAgents.some(a => a.is_default && (a.model === 'chatgpt' || a.model_provider === 'openai'))
+        const hasGemini = allAgents.some((a: Agent) => a.is_default && (a.model === 'gemini' || a.model_provider === 'google'))
+        const hasChatgpt = allAgents.some((a: Agent) => a.is_default && (a.model === 'chatgpt' || a.model_provider === 'openai'))
         
         if (!hasGemini || !hasChatgpt) {
           // Create default models if they don't exist
@@ -178,25 +174,6 @@ export function AIAgentManagement() {
     }
   }
 
-  const handleTestConnection = async (id: string) => {
-    setTestingAgentId(id)
-    try {
-      const response = await api.post(`/ai-agents/${id}/test-connection`)
-      if (response.data.success) {
-        if (response.data.testResult.success) {
-          showToast('Connection test successful', 'success')
-        } else {
-          showToast(`Connection test failed: ${response.data.testResult.error}`, 'error')
-        }
-        fetchAgents()
-      }
-    } catch (error: any) {
-      console.error('Error testing connection:', error)
-      showToast(error.response?.data?.error || 'Failed to test connection', 'error')
-    } finally {
-      setTestingAgentId(null)
-    }
-  }
 
   const handleModelApiKeyChange = async (model: 'gemini' | 'chatgpt', apiKey: string) => {
     try {

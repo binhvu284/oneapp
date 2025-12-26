@@ -119,7 +119,6 @@ export const allPages: PageInfo[] = [
     path: '/onlyapi',
     name: 'OnlyAPI',
     description: 'Manage and monitor all APIs used across OneApp applications. Centralized API configuration, testing, and monitoring.',
-    shortDescription: 'Centralized API management for all OneApp applications',
     icon: 'IconAPI',
     category: 'Core',
     tags: ['api', 'management', 'integration', 'monitoring'],

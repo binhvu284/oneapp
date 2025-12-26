@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo } from 'react'
 import api from '@/services/api'
 import { ToastContainer, type Toast } from '@/components/Toast'
 import {
-  IconPlus,
   IconEdit,
   IconTrash,
   IconSearch,
@@ -15,10 +14,7 @@ import {
   IconCopy,
   IconPlay,
   IconFilter,
-  IconMoreVertical,
   IconRefreshCw,
-  IconDatabase,
-  IconCode,
 } from '@/components/Icons'
 import styles from './OnlyAPI.module.css'
 
@@ -123,20 +119,6 @@ export function OnlyAPI() {
     return Array.from(sources).sort()
   }, [apis])
 
-  // Handle create/edit API
-  const handleOpenCreateModal = () => {
-    setEditingApi(null)
-    setFormData({
-      name: '',
-      type: 'Database',
-      api_url: '',
-      api_key: '',
-      app_source: '',
-      description: '',
-      enabled: true,
-    })
-    setShowApiModal(true)
-  }
 
   const handleOpenEditModal = (api: Api) => {
     setEditingApi(api)
@@ -236,11 +218,11 @@ export function OnlyAPI() {
   }
 
   // Handle toggle enable/disable
-  const handleToggleEnabled = async (api: Api) => {
+  const handleToggleEnabled = async (apiItem: Api) => {
     try {
-      const response = await api.put(`/apis/${api.id}/toggle`, { enabled: !api.enabled })
+      const response = await api.put(`/apis/${apiItem.id}/toggle`, { enabled: !apiItem.enabled })
       if (response.data.success) {
-        showToast(`API ${!api.enabled ? 'enabled' : 'disabled'} successfully`, 'success')
+        showToast(`API ${!apiItem.enabled ? 'enabled' : 'disabled'} successfully`, 'success')
         fetchApis()
       }
     } catch (error: any) {
