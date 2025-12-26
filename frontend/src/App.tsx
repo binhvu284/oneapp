@@ -94,15 +94,21 @@ const pageBreadcrumbs: Record<string, Array<{ label: string; path: string }>> = 
   ],
 }
 
-function AppContent() {
+function PublicRoutes() {
+  return (
+    <Routes>
+      <Route path="/home" element={<Home />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<Signup />} />
+    </Routes>
+  )
+}
+
+function ProtectedRoutes() {
   const location = useLocation()
   const { user, loading } = useAuth()
   const pageTitle = pageTitles[location.pathname] || 'Dashboard'
   const breadcrumbs = pageBreadcrumbs[location.pathname]
-
-  // Public routes that don't require authentication
-  const publicRoutes = ['/home', '/login', '/signup']
-  const isPublicRoute = publicRoutes.includes(location.pathname)
 
   // Show loading state
   if (loading) {
@@ -113,25 +119,9 @@ function AppContent() {
     )
   }
 
-  // Redirect to home if not authenticated and trying to access protected route
-  if (!user && !isPublicRoute && location.pathname !== '/') {
+  // Redirect to home if not authenticated
+  if (!user) {
     return <Navigate to="/home" replace />
-  }
-
-  // Redirect to dashboard if authenticated and on public auth pages
-  if (user && (location.pathname === '/login' || location.pathname === '/signup')) {
-    return <Navigate to="/" replace />
-  }
-
-  // Public pages without layout
-  if (isPublicRoute) {
-    return (
-      <Routes>
-        <Route path="/home" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-      </Routes>
-    )
   }
 
   return (
@@ -162,6 +152,20 @@ function AppContent() {
       </Routes>
     </Layout>
   )
+}
+
+function AppContent() {
+  const location = useLocation()
+  
+  // Public routes that don't require authentication
+  const publicRoutes = ['/home', '/login', '/signup']
+  const isPublicRoute = publicRoutes.includes(location.pathname)
+
+  if (isPublicRoute) {
+    return <PublicRoutes />
+  }
+
+  return <ProtectedRoutes />
 }
 
 function App() {
