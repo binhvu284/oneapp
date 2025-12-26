@@ -868,7 +868,8 @@
   color: var(--text);
 }
 
-.formGroup input {
+.formGroup input,
+.formGroup select {
   padding: 10px 12px;
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -876,6 +877,33 @@
   color: var(--text);
   font-size: 0.95rem;
   transition: all 0.2s ease;
+  width: 100%;
+  font-family: inherit;
+}
+
+.formGroup select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23999' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+}
+
+.formGroup select:hover {
+  border-color: var(--primary);
+}
+
+.formGroup select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.formGroup select option {
+  background: var(--panel);
+  color: var(--text);
+  padding: 8px 12px;
 }
 
 .formGroup input:focus {
@@ -909,5 +937,655 @@
 
   .connectionButton {
     flex: 1;
+  }
+}
+
+/* Connection Title Section */
+.connectionTitleSection {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.connectionTitleLeft {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+}
+
+.toolLogo {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+  padding: 4px;
+}
+
+.toolLogoImage {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.connectionTitleInfo {
+  flex: 1;
+}
+
+.connectionTitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 8px 0;
+}
+
+.connectionTitleMeta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.versionBadge {
+  padding: 4px 12px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.connectionTitleActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.versionBackupButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--primary);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.versionBackupButton:hover {
+  background: var(--primary-hover);
+  transform: translateY(-1px);
+}
+
+.versionBackupButton svg {
+  width: 18px;
+  height: 18px;
+}
+
+.openToolButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.openToolButton:hover {
+  background: var(--bg-hover);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.openToolButton svg {
+  width: 18px;
+  height: 18px;
+}
+
+.moreMenuContainer {
+  position: relative;
+}
+
+.moreMenuButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.moreMenuButton:hover {
+  background: var(--bg-hover);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.moreMenuButton svg {
+  width: 20px;
+  height: 20px;
+}
+
+.moreMenuDropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  min-width: 200px;
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.moreMenuItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-size: 0.9rem;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.moreMenuItem:hover {
+  background: var(--bg-hover);
+}
+
+.moreMenuItem svg {
+  width: 18px;
+  height: 18px;
+  color: var(--text-secondary);
+}
+
+/* Form Input Disabled */
+.formInputDisabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Form Input Styling */
+.formInput {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+  width: 100%;
+  font-family: inherit;
+}
+
+.formInput:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.formInput::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.6;
+}
+
+/* Select Dropdown Styling */
+.formInput[type="select"],
+.formInput select,
+select.formInput {
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23999' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+}
+
+.formInput[type="select"]:hover,
+select.formInput:hover {
+  border-color: var(--primary);
+}
+
+.formInput[type="select"]:focus,
+select.formInput:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+/* Select option styling */
+select.formInput option {
+  background: var(--panel);
+  color: var(--text);
+  padding: 8px 12px;
+}
+
+/* For browsers that support styling options */
+select.formInput option:checked {
+  background: var(--primary);
+  color: white;
+}
+
+select.formInput option:hover {
+  background: var(--bg-hover);
+}
+
+/* Enhanced Select Dropdown */
+.selectDropdown {
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14' fill='none'%3E%3Cpath d='M3.5 5.25L7 8.75L10.5 5.25' stroke='%23999' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 40px;
+  background-color: var(--bg);
+}
+
+.selectDropdown:hover {
+  border-color: var(--primary);
+  background-color: var(--bg-hover);
+}
+
+.selectDropdown:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  background-color: var(--bg);
+}
+
+.selectDropdown option {
+  background: var(--panel);
+  color: var(--text);
+  padding: 10px 12px;
+}
+
+.selectDropdown option:checked {
+  background: var(--primary);
+  color: white;
+}
+
+.selectDropdown option:hover {
+  background: var(--bg-hover);
+}
+
+/* Password Input with Toggle */
+.passwordInputWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.passwordInput {
+  padding: 10px 12px;
+  padding-right: 44px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+  width: 100%;
+  font-family: inherit;
+}
+
+.passwordInput:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.passwordToggle {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.passwordToggle:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.passwordToggle:active {
+  transform: translateY(-50%) scale(0.95);
+}
+
+.passwordToggle svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Tool Options */
+.toolOptions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.toolOption {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: var(--bg);
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.toolOption:hover {
+  border-color: var(--primary);
+  background: var(--bg-hover);
+}
+
+.toolOptionActive {
+  border-color: var(--primary);
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.toolOptionIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: var(--panel);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.toolOptionIcon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.toolOptionName {
+  flex: 1;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.toolOptionCheck {
+  width: 20px;
+  height: 20px;
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+/* Version & Backup Modal */
+.largeModal {
+  max-width: 900px;
+  width: 90vw;
+}
+
+.currentVersionDisplay {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.versionIcon {
+  width: 24px;
+  height: 24px;
+  color: var(--primary);
+}
+
+.versionName {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.backupActions {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.backupActionButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.backupActionButton:hover {
+  background: var(--bg-hover);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.backupActionButton svg {
+  width: 18px;
+  height: 18px;
+}
+
+.emptyBackups {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.emptyIcon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 16px;
+  color: var(--text-secondary);
+  opacity: 0.5;
+}
+
+.backupTable {
+  overflow-x: auto;
+  margin-top: 12px;
+}
+
+.backupTable table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 600px;
+}
+
+.backupTable th {
+  padding: 12px;
+  text-align: left;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid var(--border);
+  background: var(--bg);
+}
+
+.backupTable td {
+  padding: 12px;
+  font-size: 0.9rem;
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
+}
+
+.backupActionsCell {
+  display: flex;
+  gap: 8px;
+}
+
+.backupTableButton {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.backupTableButton:hover {
+  background: var(--bg-hover);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.backupTableButton svg {
+  width: 16px;
+  height: 16px;
+}
+
+.toggleSwitch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 24px;
+}
+
+.toggleSwitch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggleSlider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--border);
+  transition: 0.3s;
+  border-radius: 24px;
+}
+
+.toggleSlider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.3s;
+  border-radius: 50%;
+}
+
+.toggleSwitch input:checked + .toggleSlider {
+  background-color: var(--primary);
+}
+
+.toggleSwitch input:checked + .toggleSlider:before {
+  transform: translateX(26px);
+}
+
+.autoBackupOptions {
+  margin-top: 16px;
+  padding: 16px;
+  background: var(--bg);
+  border-radius: 8px;
+}
+
+.estimatedSize {
+  padding: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.fileInput {
+  width: 100%;
+  padding: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.fileInput:hover {
+  border-color: var(--primary);
+}
+
+@media (max-width: 768px) {
+  .connectionTitleSection {
+    flex-direction: column;
+  }
+
+  .connectionTitleActions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .moreMenuDropdown {
+    right: 0;
+    left: auto;
   }
 }

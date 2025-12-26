@@ -4,6 +4,18 @@
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+-- OneApp Users Table
+-- Stores OneApp user information and data
+CREATE TABLE IF NOT EXISTS oneapp_users (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name VARCHAR(255) NOT NULL,
+  email VARCHAR(255) NOT NULL UNIQUE,
+  phone VARCHAR(20),
+  user_data JSONB DEFAULT '{}'::jsonb, -- Flexible JSONB field to connect to other tables and store user-related data
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Modules Table
 -- Stores information about available modules
 CREATE TABLE IF NOT EXISTS modules (
@@ -86,7 +98,23 @@ CREATE TABLE IF NOT EXISTS analytics (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Backup Versions Table
+-- Stores database backup versions for Shared Database
+CREATE TABLE IF NOT EXISTS backup_versions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name VARCHAR(255) NOT NULL,
+  size BIGINT NOT NULL, -- Size in bytes
+  storage_url TEXT, -- Supabase Storage URL for the backup ZIP file
+  description TEXT,
+  is_current BOOLEAN DEFAULT FALSE, -- Whether this is the current active version
+  metadata JSONB DEFAULT '{}'::jsonb, -- Additional backup metadata
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Indexes for performance
+CREATE INDEX IF NOT EXISTS idx_oneapp_users_email ON oneapp_users(email);
+CREATE INDEX IF NOT EXISTS idx_oneapp_users_created_at ON oneapp_users(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_module_config_user_id ON module_config(user_id);
 CREATE INDEX IF NOT EXISTS idx_module_config_module_id ON module_config(module_id);
 CREATE INDEX IF NOT EXISTS idx_ai_interactions_user_id ON ai_interactions(user_id);
@@ -99,6 +127,8 @@ CREATE INDEX IF NOT EXISTS idx_files_category ON files(category);
 CREATE INDEX IF NOT EXISTS idx_analytics_user_id ON analytics(user_id);
 CREATE INDEX IF NOT EXISTS idx_analytics_event_type ON analytics(event_type);
 CREATE INDEX IF NOT EXISTS idx_analytics_created_at ON analytics(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_backup_versions_is_current ON backup_versions(is_current);
+CREATE INDEX IF NOT EXISTS idx_backup_versions_created_at ON backup_versions(created_at DESC);
 
 -- Function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -110,6 +140,9 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Triggers to automatically update updated_at
+CREATE TRIGGER update_oneapp_users_updated_at BEFORE UPDATE ON oneapp_users
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
 CREATE TRIGGER update_modules_updated_at BEFORE UPDATE ON modules
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
@@ -120,6 +153,9 @@ CREATE TRIGGER update_tasks_updated_at BEFORE UPDATE ON tasks
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_files_updated_at BEFORE UPDATE ON files
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_backup_versions_updated_at BEFORE UPDATE ON backup_versions
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Insert default modules

@@ -10,9 +10,17 @@ import { healthRoutes } from './routes/health'
 import { categoryRoutes } from './routes/categories'
 import { oneappDataRoutes } from './routes/oneapp-data'
 import { inUseAppRoutes } from './routes/in-use-app'
+import { backupVersionsRoutes } from './routes/backup-versions'
+import { schemaRoutes } from './routes/schema'
 
 // Load environment variables
-dotenv.config()
+const envResult = dotenv.config()
+if (envResult.error) {
+  console.warn('⚠️  Warning: Could not load .env file:', envResult.error.message)
+  console.warn('   Make sure .env file exists in the backend folder')
+} else {
+  console.log('✅ Environment variables loaded from .env file')
+}
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -40,6 +48,8 @@ app.use('/api/tasks', taskRoutes)
 app.use('/api/categories', categoryRoutes)
 app.use('/api/oneapp-data', oneappDataRoutes)
 app.use('/api/in-use-app', inUseAppRoutes)
+app.use('/api/backup-versions', backupVersionsRoutes)
+app.use('/api/schema', schemaRoutes)
 
 // Error handling middleware (must be last)
 app.use(errorHandler)

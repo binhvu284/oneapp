@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import api from '@/services/api'
 import JSZip from 'jszip'
 import {
@@ -16,9 +16,15 @@ import {
   IconChevronUp,
   IconMaximize,
   IconMinimize,
+  IconMoreVertical,
+  IconUpload,
+  IconPackage,
+  IconEye,
+  IconEyeOff,
 } from '@/components/Icons'
 import { ToastContainer, type Toast } from '@/components/Toast'
 import styles from './OneAppData.module.css'
+import supabaseLogo from '@/logo/supabase.png'
 
 type DatabaseType = 'oneapp' | 'shared'
 
@@ -99,30 +105,123 @@ const oneAppSchema: DatabaseSchema = {
   ],
 }
 
+// Function to parse SQL schema and extract tables and fields
+function parseSQLSchema(sql: string): DatabaseSchema {
+  const tables: Table[] = []
+  
+  if (!sql) {
+    return { tables: [] }
+  }
+
+  // Match CREATE TABLE statements (handles multi-line table definitions)
+  const createTableRegex = /CREATE TABLE (?:IF NOT EXISTS )?(\w+)\s*\(([\s\S]*?)\);/gi
+  let match
+
+  while ((match = createTableRegex.exec(sql)) !== null) {
+    const tableName = match[1]
+    const tableBody = match[2]
+    const fields: Array<{ name: string; type: string; required: boolean; description?: string }> = []
+
+    // Extract comment before table (description) - look backwards from match
+    const beforeMatch = sql.substring(Math.max(0, match.index - 200), match.index)
+    const tableCommentMatch = beforeMatch.match(/--\s*(.+?)(?:\n|$)/gi)
+    const tableDescription = tableCommentMatch && tableCommentMatch.length > 0 
+      ? tableCommentMatch[tableCommentMatch.length - 1].replace(/^--\s*/, '').trim() 
+      : undefined
+
+    // Parse fields - handle multi-line field definitions
+    // Split by comma, but be careful with nested parentheses
+    const fieldParts: string[] = []
+    let currentPart = ''
+    let depth = 0
+    
+    for (let i = 0; i < tableBody.length; i++) {
+      const char = tableBody[i]
+      if (char === '(') depth++
+      else if (char === ')') depth--
+      else if (char === ',' && depth === 0) {
+        fieldParts.push(currentPart.trim())
+        currentPart = ''
+        continue
+      }
+      currentPart += char
+    }
+    if (currentPart.trim()) {
+      fieldParts.push(currentPart.trim())
+    }
+    
+    for (const line of fieldParts) {
+      const trimmedLine = line.trim()
+      if (!trimmedLine || trimmedLine.startsWith('--')) continue
+
+      // Skip constraints, indexes, etc.
+      if (trimmedLine.match(/^(PRIMARY KEY|FOREIGN KEY|UNIQUE|CHECK|CONSTRAINT)/i)) {
+        continue
+      }
+
+      // Extract field name and type - handle UUID, VARCHAR(100), TEXT, etc.
+      const fieldMatch = trimmedLine.match(/^(\w+)\s+([A-Z_]+(?:\([^)]+\))?(?:\s+[A-Z\s]+)?)/i)
+      if (!fieldMatch) continue
+
+      const fieldName = fieldMatch[1]
+      let fieldType = fieldMatch[2].trim()
+      
+      // Extract more specific type info before cleaning
+      let displayType = fieldType
+      if (fieldType.match(/VARCHAR\((\d+)\)/i)) {
+        const varcharMatch = fieldType.match(/VARCHAR\((\d+)\)/i)
+        displayType = varcharMatch ? `VARCHAR(${varcharMatch[1]})` : 'VARCHAR'
+      } else if (fieldType.includes('TEXT[]')) {
+        displayType = 'TEXT[]'
+      } else if (fieldType.includes('JSONB')) {
+        displayType = 'JSONB'
+      } else if (fieldType.includes('TIMESTAMP WITH TIME ZONE')) {
+        displayType = 'TIMESTAMP WITH TIME ZONE'
+      } else if (fieldType.includes('TIMESTAMP')) {
+        displayType = 'TIMESTAMP'
+      } else if (fieldType.includes('BIGINT')) {
+        displayType = 'BIGINT'
+      } else if (fieldType.includes('BOOLEAN')) {
+        displayType = 'BOOLEAN'
+      } else if (fieldType.includes('UUID')) {
+        displayType = 'UUID'
+      } else {
+        // Clean up type (remove parentheses content for display if not already handled)
+        displayType = fieldType.split('(')[0].toUpperCase()
+      }
+      
+      // Check if required (NOT NULL) - but allow DEFAULT values
+      const isRequired = /\bNOT NULL\b/i.test(trimmedLine) && !/\bDEFAULT\b/i.test(trimmedLine.split('NOT NULL')[0])
+      
+      // Extract comment/description (inline comments)
+      const commentMatch = trimmedLine.match(/--\s*(.+)$/i)
+      const description = commentMatch ? commentMatch[1].trim() : undefined
+
+      // Special handling for primary keys
+      const isPrimaryKey = /\bPRIMARY KEY\b/i.test(trimmedLine) || fieldName === 'id'
+
+      fields.push({
+        name: fieldName,
+        type: displayType,
+        required: isRequired || isPrimaryKey,
+        description: description || (isPrimaryKey ? 'Primary key' : undefined),
+      })
+    }
+
+    if (fields.length > 0) {
+      tables.push({
+        name: tableName,
+        fields,
+      })
+    }
+  }
+
+  return { tables }
+}
+
+// Default shared schema (will be replaced by parsed SQL)
 const sharedSchema: DatabaseSchema = {
-  tables: [
-    {
-      name: 'notifications',
-      fields: [
-        { name: '_id', type: 'ObjectId', required: true, description: 'Unique identifier' },
-        { name: 'userId', type: 'ObjectId', required: true, description: 'User ID' },
-        { name: 'title', type: 'String', required: true, description: 'Notification title' },
-        { name: 'message', type: 'String', required: true, description: 'Notification message' },
-        { name: 'read', type: 'Boolean', required: true, description: 'Is notification read' },
-        { name: 'createdAt', type: 'Date', required: true, description: 'Creation date' },
-      ],
-    },
-    {
-      name: 'analytics',
-      fields: [
-        { name: '_id', type: 'ObjectId', required: true, description: 'Unique identifier' },
-        { name: 'event', type: 'String', required: true, description: 'Event name' },
-        { name: 'userId', type: 'ObjectId', required: false, description: 'User ID' },
-        { name: 'data', type: 'Object', required: false, description: 'Event data' },
-        { name: 'timestamp', type: 'Date', required: true, description: 'Event timestamp' },
-      ],
-    },
-  ],
+  tables: [],
 }
 
 // Mock table data
@@ -240,6 +339,30 @@ export function OneAppData() {
   const [tableData, setTableData] = useState<Record<string, any[]>>({})
   const [loadingTableData, setLoadingTableData] = useState<Record<string, boolean>>({})
   const [toasts, setToasts] = useState<Toast[]>([])
+  const [showMoreMenu, setShowMoreMenu] = useState(false)
+  const [showChangeToolModal, setShowChangeToolModal] = useState(false)
+  const [showVersionBackupModal, setShowVersionBackupModal] = useState(false)
+  const [currentVersion, setCurrentVersion] = useState<string>('v1.0.0')
+  const [backups, setBackups] = useState<Array<{
+    id: string
+    name: string
+    size: number
+    sizeFormatted: string
+    lastUpdate: string
+    createdAt: string
+    is_current: boolean
+    storage_url?: string
+  }>>([])
+  const [loadingBackups, setLoadingBackups] = useState(false)
+  const [schemaSQL, setSchemaSQL] = useState<string>('')
+  const [loadingSchema, setLoadingSchema] = useState(false)
+  const [autoBackupEnabled, setAutoBackupEnabled] = useState(false)
+  const [autoBackupInterval, setAutoBackupInterval] = useState<'week' | 'month' | 'custom'>('week')
+  const [customBackupDays, setCustomBackupDays] = useState<number>(7)
+  const [newBackupName, setNewBackupName] = useState('')
+  const [showCreateBackupModal, setShowCreateBackupModal] = useState(false)
+  const [showUploadBackupModal, setShowUploadBackupModal] = useState(false)
+  const [showApiKey, setShowApiKey] = useState(false)
 
   // Toast helper functions
   const showToast = (message: string, type: Toast['type'] = 'info', duration?: number) => {
@@ -258,15 +381,123 @@ export function OneAppData() {
   }
 
   const [sharedDbConfig, setSharedDbConfig] = useState<SharedDatabaseConfig>({
-    tool: 'MongoDB Atlas',
-    apiUrl: 'https://api.mongodb.com',
+    tool: 'Supabase',
+    apiUrl: 'fzxetyomesoojyhhrhnh',
     apiKey: '••••••••••••',
     connected: true,
-    toolUrl: 'https://cloud.mongodb.com',
+    toolUrl: 'https://supabase.com',
   })
 
-  const currentSchema = activeDatabase === 'oneapp' ? oneAppSchema : sharedSchema
-  const currentTables = activeDatabase === 'oneapp' ? oneAppSchema.tables : sharedSchema.tables
+  // Available database tools
+  const availableTools = ['Supabase'] // Can be extended later
+
+  // Parse SQL schema when available for shared database
+  const parsedSharedSchema = useMemo(() => {
+    if (activeDatabase === 'shared' && schemaSQL) {
+      return parseSQLSchema(schemaSQL)
+    }
+    return sharedSchema
+  }, [activeDatabase, schemaSQL])
+
+  const currentSchema = activeDatabase === 'oneapp' ? oneAppSchema : parsedSharedSchema
+  const currentTables = activeDatabase === 'oneapp' ? oneAppSchema.tables : parsedSharedSchema.tables
+
+  // Helper function to format bytes
+  const formatBytes = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes'
+    const k = 1024
+    const sizes = ['Bytes', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
+  }
+
+  // Fetch schema SQL from database
+  useEffect(() => {
+    if (activeDatabase === 'shared') {
+      const fetchSchema = async () => {
+        setLoadingSchema(true)
+        try {
+          const response = await api.get('/schema')
+          if (response.data.success) {
+            setSchemaSQL(response.data.data.sql)
+            // Auto-set to SQL view for shared database
+            setSchemaViewMode('sql')
+          }
+        } catch (error) {
+          console.error('Error fetching schema:', error)
+          showToast('Failed to load schema', 'error')
+        } finally {
+          setLoadingSchema(false)
+        }
+      }
+      fetchSchema()
+    } else {
+      // Reset to list view for OneApp database
+      setSchemaViewMode('list')
+    }
+  }, [activeDatabase])
+
+  // Fetch backups from database
+  useEffect(() => {
+    if (activeDatabase === 'shared') {
+      const fetchBackups = async () => {
+        setLoadingBackups(true)
+        try {
+          const response = await api.get('/backup-versions')
+          if (response.data.success) {
+            // Handle empty array when Supabase is not configured
+            const backupsArray = response.data.data || []
+            const backupsData = backupsArray.map((backup: any) => ({
+              id: backup.id,
+              name: backup.name,
+              size: backup.size,
+              sizeFormatted: formatBytes(backup.size),
+              lastUpdate: backup.updated_at || backup.created_at,
+              createdAt: backup.created_at,
+              is_current: backup.is_current,
+              storage_url: backup.storage_url,
+            }))
+            setBackups(backupsData)
+            
+            // Set current version
+            const currentBackup = backupsData.find((b: any) => b.is_current)
+            if (currentBackup) {
+              setCurrentVersion(currentBackup.name)
+            } else {
+              setCurrentVersion('v1.0.0')
+            }
+          }
+        } catch (error: any) {
+          console.error('Error fetching backups:', error)
+          // Only show error toast if it's not a 503 (Supabase not configured)
+          // 503 errors are now handled gracefully by returning empty arrays
+          if (error.response?.status !== 503) {
+            showToast('Failed to load backups', 'error')
+          }
+          // Set empty backups array on error
+          setBackups([])
+          setCurrentVersion('v1.0.0')
+        } finally {
+          setLoadingBackups(false)
+        }
+      }
+      fetchBackups()
+    }
+  }, [activeDatabase])
+
+  // Close more menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement
+      if (showMoreMenu && !target.closest(`.${styles.moreMenuContainer}`)) {
+        setShowMoreMenu(false)
+      }
+    }
+    if (showMoreMenu) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showMoreMenu])
 
   // Fetch table data when OneApp database is active
   useEffect(() => {
@@ -347,12 +578,12 @@ export function OneAppData() {
   }
 
   const handleDownloadSchema = () => {
-    const sql = generateSQL(currentSchema)
+    const sql = activeDatabase === 'shared' && schemaSQL ? schemaSQL : generateSQL(currentSchema)
     const blob = new Blob([sql], { type: 'text/plain' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `${activeDatabase}-database-schema.txt`
+    a.download = `${activeDatabase}-database-schema.sql`
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
@@ -360,7 +591,7 @@ export function OneAppData() {
   }
 
   const handleCopySQL = async () => {
-    const sql = generateSQL(currentSchema)
+    const sql = activeDatabase === 'shared' && schemaSQL ? schemaSQL : generateSQL(currentSchema)
     try {
       await navigator.clipboard.writeText(sql)
       showToast('SQL code copied to clipboard', 'success')
@@ -442,13 +673,110 @@ export function OneAppData() {
   const handleCheckConnection = () => {
     // Simulate connection check
     console.log('Checking connection...')
-    setSharedDbConfig({ ...sharedDbConfig, connected: true })
+    setShowMoreMenu(false)
+    // Simulate async check
+    setTimeout(() => {
+      setSharedDbConfig({ ...sharedDbConfig, connected: true })
+      showToast('Connection check successful', 'success')
+    }, 1000)
   }
 
   const handleOpenTool = () => {
     if (sharedDbConfig.toolUrl) {
       window.open(sharedDbConfig.toolUrl, '_blank')
     }
+  }
+
+  const handleCreateBackup = async () => {
+    if (!newBackupName.trim()) {
+      showToast('Please enter a backup name', 'error')
+      return
+    }
+    
+    showToast('Creating backup...', 'info')
+    try {
+      // Estimate size (in bytes) - in real implementation, calculate actual size
+      const estimatedSize = 2.5 * 1024 * 1024 // 2.5 MB
+      
+      const response = await api.post('/backup-versions', {
+        name: newBackupName,
+        size: estimatedSize,
+        description: 'Manual backup created from OneApp Data',
+        is_current: false,
+      })
+      
+      if (response.data.success) {
+        const newBackup = {
+          id: response.data.data.id,
+          name: response.data.data.name,
+          size: response.data.data.size,
+          sizeFormatted: formatBytes(response.data.data.size),
+          lastUpdate: response.data.data.updated_at || response.data.data.created_at,
+          createdAt: response.data.data.created_at,
+          is_current: response.data.data.is_current,
+          storage_url: response.data.data.storage_url,
+        }
+        setBackups(prev => [newBackup, ...prev])
+        setNewBackupName('')
+        setShowCreateBackupModal(false)
+        showToast('Backup created successfully', 'success')
+      }
+    } catch (error: any) {
+      console.error('Error creating backup:', error)
+      const errorMessage = error.response?.data?.error || error.message || 'Failed to create backup'
+      showToast(errorMessage, 'error', 5000) // Show for 5 seconds for longer error messages
+    }
+  }
+
+  const handleUploadBackup = async (file: File) => {
+    // Validate file format
+    if (!file.name.endsWith('.zip')) {
+      showToast('Please upload a valid ZIP file', 'error')
+      return
+    }
+    showToast('Uploading backup...', 'info')
+    // In real implementation, this would upload to storage
+    setTimeout(() => {
+      const uploadedBackup = {
+        id: `backup-${Date.now()}`,
+        name: file.name.replace('.zip', ''),
+        size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
+        lastUpdate: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+      }
+      setBackups(prev => [uploadedBackup, ...prev])
+      setShowUploadBackupModal(false)
+      showToast('Backup uploaded successfully', 'success')
+    }, 1500)
+  }
+
+  const handleApplyBackup = async (backupId: string) => {
+    const backup = backups.find(b => b.id === backupId)
+    if (!backup) return
+    
+    showToast(`Applying backup "${backup.name}"...`, 'info')
+    try {
+      const response = await api.put(`/backup-versions/${backupId}/apply`)
+      if (response.data.success) {
+        // Update local state
+        setBackups(prev => prev.map(b => ({
+          ...b,
+          is_current: b.id === backupId,
+        })))
+        setCurrentVersion(backup.name)
+        showToast('Backup applied successfully', 'success')
+      }
+    } catch (error: any) {
+      console.error('Error applying backup:', error)
+      showToast(error.response?.data?.error || 'Failed to apply backup', 'error')
+    }
+  }
+
+  const handleDownloadBackup = (backupId: string) => {
+    const backup = backups.find(b => b.id === backupId)
+    if (!backup) return
+    // In real implementation, this would download the backup file
+    showToast(`Downloading backup "${backup.name}"...`, 'info')
   }
 
   if (activeDatabase) {
@@ -478,6 +806,93 @@ export function OneAppData() {
               )}
             </p>
           </div>
+
+          {/* Shared Database Specific: Connection Info */}
+          {activeDatabase === 'shared' && (
+            <div className={styles.connectionSection}>
+              {/* Title Section with Tool Info */}
+              <div className={styles.connectionTitleSection}>
+                <div className={styles.connectionTitleLeft}>
+                  <div className={styles.toolLogo}>
+                    <img src={supabaseLogo} alt={sharedDbConfig.tool} className={styles.toolLogoImage} />
+                  </div>
+                  <div className={styles.connectionTitleInfo}>
+                    <h2 className={styles.connectionTitle}>{sharedDbConfig.tool}</h2>
+                    <div className={styles.connectionTitleMeta}>
+                      <div className={styles.connectionStatus}>
+                        {sharedDbConfig.connected ? (
+                          <>
+                            <IconCheckCircle className={styles.connectedIcon} />
+                            <span className={styles.connectedText}>Connected</span>
+                          </>
+                        ) : (
+                          <>
+                            <IconXCircle className={styles.disconnectedIcon} />
+                            <span className={styles.disconnectedText}>Not Connected</span>
+                          </>
+                        )}
+                      </div>
+                      <span className={styles.versionBadge}>{currentVersion}</span>
+                    </div>
+                  </div>
+                </div>
+                <div className={styles.connectionTitleActions}>
+                  <button 
+                    className={styles.versionBackupButton}
+                    onClick={() => setShowVersionBackupModal(true)}
+                  >
+                    <IconPackage />
+                    <span>Version & Backup</span>
+                  </button>
+                  {sharedDbConfig.toolUrl && (
+                    <button className={styles.openToolButton} onClick={handleOpenTool}>
+                      <IconExternalLink />
+                      <span>Open Tool</span>
+                    </button>
+                  )}
+                  <div className={styles.moreMenuContainer}>
+                    <button 
+                      className={styles.moreMenuButton}
+                      onClick={() => setShowMoreMenu(!showMoreMenu)}
+                    >
+                      <IconMoreVertical />
+                    </button>
+                    {showMoreMenu && (
+                      <div className={styles.moreMenuDropdown}>
+                        <button 
+                          className={styles.moreMenuItem}
+                          onClick={() => {
+                            setShowChangeToolModal(true)
+                            setShowMoreMenu(false)
+                          }}
+                        >
+                          <IconServer />
+                          <span>Change Tool</span>
+                        </button>
+                        <button 
+                          className={styles.moreMenuItem}
+                          onClick={handleCheckConnection}
+                        >
+                          <IconCheckCircle />
+                          <span>Check Connection</span>
+                        </button>
+                        <button 
+                          className={styles.moreMenuItem}
+                          onClick={() => {
+                            setShowApiEditModal(true)
+                            setShowMoreMenu(false)
+                          }}
+                        >
+                          <IconAPI />
+                          <span>Edit API</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Schema Section */}
           <div className={styles.schemaSection}>
@@ -574,9 +989,15 @@ export function OneAppData() {
               </div>
             ) : (
               <div className={styles.sqlView}>
-                <pre className={styles.sqlCode}>
-                  <code>{generateSQL(currentSchema)}</code>
-                </pre>
+                {loadingSchema ? (
+                  <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                    Loading schema...
+                  </div>
+                ) : (
+                  <pre className={styles.sqlCode}>
+                    <code>{activeDatabase === 'shared' && schemaSQL ? schemaSQL : generateSQL(currentSchema)}</code>
+                  </pre>
+                )}
               </div>
             )}
           </div>
@@ -619,58 +1040,6 @@ export function OneAppData() {
                     </button>
                   </div>
                 ))}
-              </div>
-            </div>
-          )}
-
-          {/* Shared Database Specific: Connection Info */}
-          {activeDatabase === 'shared' && (
-            <div className={styles.connectionSection}>
-              <h2 className={styles.subsectionTitle}>Database Connection</h2>
-              <div className={styles.connectionCard}>
-                <div className={styles.connectionHeader}>
-                  <div className={styles.connectionInfo}>
-                    <h3 className={styles.connectionTool}>{sharedDbConfig.tool}</h3>
-                    <div className={styles.connectionStatus}>
-                      {sharedDbConfig.connected ? (
-                        <>
-                          <IconCheckCircle className={styles.connectedIcon} />
-                          <span className={styles.connectedText}>Connected</span>
-                        </>
-                      ) : (
-                        <>
-                          <IconXCircle className={styles.disconnectedIcon} />
-                          <span className={styles.disconnectedText}>Not Connected</span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  <div className={styles.connectionActions}>
-                    <button className={styles.connectionButton} onClick={handleCheckConnection}>
-                      <IconCheckCircle />
-                      <span>Check Connection</span>
-                    </button>
-                    <button
-                      className={styles.connectionButton}
-                      onClick={() => setShowApiEditModal(true)}
-                    >
-                      <IconAPI />
-                      <span>Edit API</span>
-                    </button>
-                    {sharedDbConfig.toolUrl && (
-                      <button className={styles.connectionButton} onClick={handleOpenTool}>
-                        <IconExternalLink />
-                        <span>Open Tool</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
-                <div className={styles.connectionDetails}>
-                  <div className={styles.connectionField}>
-                    <span className={styles.connectionLabel}>API URL:</span>
-                    <span className={styles.connectionValue}>{sharedDbConfig.apiUrl}</span>
-                  </div>
-                </div>
               </div>
             </div>
           )}
@@ -754,7 +1123,15 @@ export function OneAppData() {
 
         {/* Edit API Modal */}
         {showApiEditModal && (
-          <div className={styles.modalOverlay} onClick={() => setShowApiEditModal(false)}>
+          <div 
+            className={styles.modalOverlay} 
+            onClick={(e) => {
+              // Only close if clicking directly on the overlay, not on child elements
+              if (e.target === e.currentTarget) {
+                setShowApiEditModal(false)
+              }
+            }}
+          >
             <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
               <div className={styles.modalHeader}>
                 <h2>Edit API Configuration</h2>
@@ -766,8 +1143,14 @@ export function OneAppData() {
                   <input
                     type="text"
                     value={sharedDbConfig.tool}
-                    onChange={(e) => setSharedDbConfig({ ...sharedDbConfig, tool: e.target.value })}
+                    readOnly
+                    disabled
+                    className={styles.formInputDisabled}
+                    style={{ opacity: 0.6, cursor: 'not-allowed' }}
                   />
+                  <div className={styles.formHelperText}>
+                    Want to switch tools? Head over to the three-dot menu and pick "Change Tool" instead.
+                  </div>
                 </div>
                 <div className={styles.formGroup}>
                   <label>API URL</label>
@@ -779,11 +1162,22 @@ export function OneAppData() {
                 </div>
                 <div className={styles.formGroup}>
                   <label>API Key</label>
-                  <input
-                    type="password"
-                    value={sharedDbConfig.apiKey}
-                    onChange={(e) => setSharedDbConfig({ ...sharedDbConfig, apiKey: e.target.value })}
-                  />
+                  <div className={styles.passwordInputWrapper}>
+                    <input
+                      type={showApiKey ? 'text' : 'password'}
+                      value={sharedDbConfig.apiKey}
+                      onChange={(e) => setSharedDbConfig({ ...sharedDbConfig, apiKey: e.target.value })}
+                      className={styles.passwordInput}
+                    />
+                    <button
+                      type="button"
+                      className={styles.passwordToggle}
+                      onClick={() => setShowApiKey(!showApiKey)}
+                      title={showApiKey ? 'Hide API Key' : 'Show API Key'}
+                    >
+                      {showApiKey ? <IconEyeOff /> : <IconEye />}
+                    </button>
+                  </div>
                 </div>
                 <div className={styles.formGroup}>
                   <label>Tool URL (Optional)</label>
@@ -807,6 +1201,310 @@ export function OneAppData() {
                   }}
                 >
                   Save Changes
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Change Tool Modal */}
+        {showChangeToolModal && (
+          <div 
+            className={styles.modalOverlay} 
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setShowChangeToolModal(false)
+              }
+            }}
+          >
+            <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+              <div className={styles.modalHeader}>
+                <h2>Change Database Tool</h2>
+                <button className={styles.modalClose} onClick={() => setShowChangeToolModal(false)}>×</button>
+              </div>
+              <div className={styles.modalBody}>
+                <div className={styles.formGroup}>
+                  <label>Select Database Tool</label>
+                  <div className={styles.toolOptions}>
+                    {availableTools.map((tool) => (
+                      <div
+                        key={tool}
+                        className={`${styles.toolOption} ${sharedDbConfig.tool === tool ? styles.toolOptionActive : ''}`}
+                        onClick={() => {
+                          setSharedDbConfig({ ...sharedDbConfig, tool })
+                        }}
+                      >
+                        <div className={styles.toolOptionIcon}>
+                          <IconDatabase />
+                        </div>
+                        <div className={styles.toolOptionName}>{tool}</div>
+                        {sharedDbConfig.tool === tool && (
+                          <IconCheckCircle className={styles.toolOptionCheck} />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  {availableTools.length === 1 && (
+                    <div className={styles.formHelperText}>
+                      Currently, only {availableTools[0]} is available. More tools will be added soon.
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className={styles.modalFooter}>
+                <button className={styles.modalButtonSecondary} onClick={() => setShowChangeToolModal(false)}>
+                  Cancel
+                </button>
+                <button
+                  className={styles.modalButtonPrimary}
+                  onClick={() => {
+                    setShowChangeToolModal(false)
+                    showToast('Database tool updated', 'success')
+                  }}
+                >
+                  Confirm
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Version & Backup Modal */}
+        {showVersionBackupModal && (
+          <div 
+            className={styles.modalOverlay} 
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setShowVersionBackupModal(false)
+              }
+            }}
+          >
+            <div className={`${styles.modalContent} ${styles.largeModal}`} onClick={(e) => e.stopPropagation()}>
+              <div className={styles.modalHeader}>
+                <h2>Version & Backup</h2>
+                <button className={styles.modalClose} onClick={() => setShowVersionBackupModal(false)}>×</button>
+              </div>
+              <div className={styles.modalBody}>
+                {/* Current Version */}
+                <div className={styles.formGroup}>
+                  <label>Current Version</label>
+                  <div className={styles.currentVersionDisplay}>
+                    <IconPackage className={styles.versionIcon} />
+                    <span className={styles.versionName}>{currentVersion}</span>
+                  </div>
+                </div>
+
+                {/* Backup Actions */}
+                <div className={styles.backupActions}>
+                  <button 
+                    className={styles.backupActionButton}
+                    onClick={() => setShowCreateBackupModal(true)}
+                  >
+                    <IconPackage />
+                    <span>Create Backup</span>
+                  </button>
+                  <button 
+                    className={styles.backupActionButton}
+                    onClick={() => setShowUploadBackupModal(true)}
+                  >
+                    <IconUpload />
+                    <span>Upload Version</span>
+                  </button>
+                </div>
+
+                {/* Backup Table */}
+                <div className={styles.formGroup} style={{ marginTop: '24px' }}>
+                  <label>Backup Versions ({backups.length})</label>
+                  {loadingBackups ? (
+                    <div className={styles.emptyBackups}>
+                      <IconPackage className={styles.emptyIcon} />
+                      <p>Loading backups...</p>
+                    </div>
+                  ) : backups.length === 0 ? (
+                    <div className={styles.emptyBackups}>
+                      <IconPackage className={styles.emptyIcon} />
+                      <p>No backups yet. Create your first backup to get started.</p>
+                    </div>
+                  ) : (
+                    <div className={styles.backupTable}>
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Size</th>
+                            <th>Last Update</th>
+                            <th>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {backups.map((backup) => (
+                            <tr key={backup.id}>
+                              <td>{backup.id.substring(0, 8)}...</td>
+                              <td>{backup.name} {backup.is_current && <span style={{ color: 'var(--primary)', fontSize: '0.85rem' }}>(Current)</span>}</td>
+                              <td>{backup.sizeFormatted || formatBytes(backup.size)}</td>
+                              <td>{new Date(backup.lastUpdate).toLocaleDateString()}</td>
+                              <td>
+                                <div className={styles.backupActionsCell}>
+                                  <button
+                                    className={styles.backupTableButton}
+                                    onClick={() => handleApplyBackup(backup.id)}
+                                    title="Apply this backup"
+                                  >
+                                    Apply
+                                  </button>
+                                  <button
+                                    className={styles.backupTableButton}
+                                    onClick={() => handleDownloadBackup(backup.id)}
+                                    title="Download backup"
+                                  >
+                                    <IconDownload />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+
+                {/* Auto Backup Settings */}
+                <div className={styles.formGroup} style={{ marginTop: '24px', borderTop: '1px solid var(--border)', paddingTop: '24px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                    <label style={{ marginBottom: 0 }}>Auto Backup</label>
+                    <label className={styles.toggleSwitch}>
+                      <input
+                        type="checkbox"
+                        checked={autoBackupEnabled}
+                        onChange={(e) => setAutoBackupEnabled(e.target.checked)}
+                      />
+                      <span className={styles.toggleSlider}></span>
+                    </label>
+                  </div>
+                  {autoBackupEnabled && (
+                    <div className={styles.autoBackupOptions}>
+                      <div className={styles.formGroup}>
+                        <label>Backup Interval</label>
+                        <select
+                          value={autoBackupInterval}
+                          onChange={(e) => setAutoBackupInterval(e.target.value as 'week' | 'month' | 'custom')}
+                          className={`${styles.formInput} ${styles.selectDropdown}`}
+                        >
+                          <option value="week">Every Week</option>
+                          <option value="month">Every Month</option>
+                          <option value="custom">Custom Interval</option>
+                        </select>
+                      </div>
+                      {autoBackupInterval === 'custom' && (
+                        <div className={styles.formGroup}>
+                          <label>Every (days)</label>
+                          <input
+                            type="number"
+                            value={customBackupDays}
+                            onChange={(e) => setCustomBackupDays(Number(e.target.value))}
+                            min={1}
+                            className={styles.formInput}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className={styles.modalFooter}>
+                <button className={styles.modalButtonSecondary} onClick={() => setShowVersionBackupModal(false)}>
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Create Backup Modal */}
+        {showCreateBackupModal && (
+          <div 
+            className={styles.modalOverlay} 
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setShowCreateBackupModal(false)
+              }
+            }}
+          >
+            <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+              <div className={styles.modalHeader}>
+                <h2>Create Backup</h2>
+                <button className={styles.modalClose} onClick={() => setShowCreateBackupModal(false)}>×</button>
+              </div>
+              <div className={styles.modalBody}>
+                <div className={styles.formGroup}>
+                  <label>Backup Name</label>
+                  <input
+                    type="text"
+                    value={newBackupName}
+                    onChange={(e) => setNewBackupName(e.target.value)}
+                    placeholder="e.g., Backup 2024-01-15"
+                    className={styles.formInput}
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <label>Estimated Size</label>
+                  <div className={styles.estimatedSize}>~2.5 MB</div>
+                  <div className={styles.formHelperText}>
+                    This is an estimate. Actual size may vary based on data.
+                  </div>
+                </div>
+              </div>
+              <div className={styles.modalFooter}>
+                <button className={styles.modalButtonSecondary} onClick={() => setShowCreateBackupModal(false)}>
+                  Cancel
+                </button>
+                <button className={styles.modalButtonPrimary} onClick={handleCreateBackup}>
+                  Create Backup
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Upload Backup Modal */}
+        {showUploadBackupModal && (
+          <div 
+            className={styles.modalOverlay} 
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setShowUploadBackupModal(false)
+              }
+            }}
+          >
+            <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+              <div className={styles.modalHeader}>
+                <h2>Upload Version</h2>
+                <button className={styles.modalClose} onClick={() => setShowUploadBackupModal(false)}>×</button>
+              </div>
+              <div className={styles.modalBody}>
+                <div className={styles.formGroup}>
+                  <label>Select ZIP File</label>
+                  <input
+                    type="file"
+                    accept=".zip"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) {
+                        handleUploadBackup(file)
+                      }
+                    }}
+                    className={styles.fileInput}
+                  />
+                  <div className={styles.formHelperText}>
+                    Upload a valid ZIP file containing schema table data with full data of that version.
+                  </div>
+                </div>
+              </div>
+              <div className={styles.modalFooter}>
+                <button className={styles.modalButtonSecondary} onClick={() => setShowUploadBackupModal(false)}>
+                  Cancel
                 </button>
               </div>
             </div>
