@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import api from '@/services/api'
 import JSZip from 'jszip'
+import { getSupabaseClient } from '@/utils/supabase'
 import {
   IconDatabase,
   IconCode,
@@ -409,14 +410,110 @@ export function OneAppData() {
     if (activeDatabase === 'shared') {
       const fetchSchema = async () => {
         setLoadingSchema(true)
+        // #region agent log
+        const supabaseClient = getSupabaseClient()
+        fetch('http://127.0.0.1:7244/ingest/d9b8d4a1-e56f-447d-a381-d93a62672caf', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            location: 'OneAppData.tsx:408',
+            message: 'Fetching schema - checking Supabase connection',
+            data: { hasSupabaseClient: !!supabaseClient, apiUrl: import.meta.env.VITE_API_URL },
+            timestamp: Date.now(),
+            sessionId: 'debug-session',
+            hypothesisId: 'A'
+          })
+        }).catch(() => {})
+        // #endregion
         try {
-          const response = await api.get('/schema')
-          if (response.data.success) {
-            setSchemaSQL(response.data.data.sql)
-            // Auto-set to SQL view for shared database
+          // Try direct Supabase connection first, fallback to API
+          const supabaseClient = getSupabaseClient()
+          if (supabaseClient) {
+            // Schema is static, so we'll use the embedded version
+            // In production, you could store it in Supabase Storage or fetch from a CDN
+            const embeddedSchema = `-- OneApp Database Schema
+-- PostgreSQL (Supabase)
+
+-- Enable UUID extension
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- OneApp Users Table
+CREATE TABLE IF NOT EXISTS oneapp_users (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name VARCHAR(255) NOT NULL,
+  email VARCHAR(255) NOT NULL UNIQUE,
+  phone VARCHAR(20),
+  user_data JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Backup Versions Table
+CREATE TABLE IF NOT EXISTS backup_versions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name VARCHAR(255) NOT NULL,
+  size BIGINT NOT NULL,
+  storage_url TEXT,
+  description TEXT,
+  is_current BOOLEAN DEFAULT FALSE,
+  metadata JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Index for current backup
+CREATE INDEX IF NOT EXISTS idx_backup_versions_is_current ON backup_versions(is_current);
+
+-- Trigger to update updated_at timestamp
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = CURRENT_TIMESTAMP;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_backup_versions_updated_at BEFORE UPDATE ON backup_versions
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();`
+            setSchemaSQL(embeddedSchema)
             setSchemaViewMode('sql')
+            // #region agent log
+            fetch('http://127.0.0.1:7244/ingest/d9b8d4a1-e56f-447d-a381-d93a62672caf', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                location: 'OneAppData.tsx:408',
+                message: 'Schema loaded from embedded source',
+                data: { schemaLength: embeddedSchema.length },
+                timestamp: Date.now(),
+                sessionId: 'debug-session',
+                hypothesisId: 'A'
+              })
+            }).catch(() => {})
+            // #endregion
+          } else {
+            // Fallback to API if Supabase not configured
+            const response = await api.get('/schema')
+            if (response.data.success) {
+              setSchemaSQL(response.data.data.sql)
+              setSchemaViewMode('sql')
+            }
           }
-        } catch (error) {
+        } catch (error: any) {
+          // #region agent log
+          fetch('http://127.0.0.1:7244/ingest/d9b8d4a1-e56f-447d-a381-d93a62672caf', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              location: 'OneAppData.tsx:408',
+              message: 'Error fetching schema',
+              data: { error: error.message, status: error.response?.status },
+              timestamp: Date.now(),
+              sessionId: 'debug-session',
+              hypothesisId: 'A'
+            })
+          }).catch(() => {})
+          // #endregion
           console.error('Error fetching schema:', error)
           showToast('Failed to load schema', 'error')
         } finally {
@@ -435,11 +532,64 @@ export function OneAppData() {
     if (activeDatabase === 'shared') {
       const fetchBackups = async () => {
         setLoadingBackups(true)
+        // #region agent log
+        const supabaseClient = getSupabaseClient()
+        fetch('http://127.0.0.1:7244/ingest/d9b8d4a1-e56f-447d-a381-d93a62672caf', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            location: 'OneAppData.tsx:434',
+            message: 'Fetching backups - checking Supabase connection',
+            data: { hasSupabaseClient: !!supabaseClient },
+            timestamp: Date.now(),
+            sessionId: 'debug-session',
+            hypothesisId: 'B'
+          })
+        }).catch(() => {})
+        // #endregion
         try {
-          const response = await api.get('/backup-versions')
-          if (response.data.success) {
-            // Handle empty array when Supabase is not configured
-            const backupsArray = response.data.data || []
+          // Try direct Supabase connection first
+          const supabaseClient = getSupabaseClient()
+          if (supabaseClient) {
+            // #region agent log
+            fetch('http://127.0.0.1:7244/ingest/d9b8d4a1-e56f-447d-a381-d93a62672caf', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                location: 'OneAppData.tsx:434',
+                message: 'Querying Supabase directly for backups',
+                data: {},
+                timestamp: Date.now(),
+                sessionId: 'debug-session',
+                hypothesisId: 'B'
+              })
+            }).catch(() => {})
+            // #endregion
+            const { data, error } = await supabaseClient
+              .from('backup_versions')
+              .select('*')
+              .order('created_at', { ascending: false })
+            
+            // #region agent log
+            fetch('http://127.0.0.1:7244/ingest/d9b8d4a1-e56f-447d-a381-d93a62672caf', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                location: 'OneAppData.tsx:434',
+                message: 'Supabase query result',
+                data: { hasError: !!error, errorMessage: error?.message, dataLength: data?.length },
+                timestamp: Date.now(),
+                sessionId: 'debug-session',
+                hypothesisId: 'B'
+              })
+            }).catch(() => {})
+            // #endregion
+            
+            if (error) {
+              throw error
+            }
+            
+            const backupsArray = data || []
             const backupsData = backupsArray.map((backup: any) => ({
               id: backup.id,
               name: backup.name,
@@ -459,15 +609,50 @@ export function OneAppData() {
             } else {
               setCurrentVersion('v1.0.0')
             }
+          } else {
+            // Fallback to API if Supabase not configured
+            const response = await api.get('/backup-versions')
+            if (response.data.success) {
+              const backupsArray = response.data.data || []
+              const backupsData = backupsArray.map((backup: any) => ({
+                id: backup.id,
+                name: backup.name,
+                size: backup.size,
+                sizeFormatted: formatBytes(backup.size),
+                lastUpdate: backup.updated_at || backup.created_at,
+                createdAt: backup.created_at,
+                is_current: backup.is_current,
+                storage_url: backup.storage_url,
+              }))
+              setBackups(backupsData)
+              
+              const currentBackup = backupsData.find((b: any) => b.is_current)
+              if (currentBackup) {
+                setCurrentVersion(currentBackup.name)
+              } else {
+                setCurrentVersion('v1.0.0')
+              }
+            }
           }
         } catch (error: any) {
+          // #region agent log
+          fetch('http://127.0.0.1:7244/ingest/d9b8d4a1-e56f-447d-a381-d93a62672caf', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              location: 'OneAppData.tsx:434',
+              message: 'Error fetching backups',
+              data: { error: error.message, code: error.code, status: error.response?.status },
+              timestamp: Date.now(),
+              sessionId: 'debug-session',
+              hypothesisId: 'B'
+            })
+          }).catch(() => {})
+          // #endregion
           console.error('Error fetching backups:', error)
-          // Only show error toast if it's not a 503 (Supabase not configured)
-          // 503 errors are now handled gracefully by returning empty arrays
           if (error.response?.status !== 503) {
-            showToast('Failed to load backups', 'error')
+            showToast(`Failed to load backups: ${error.message || 'Unknown error'}`, 'error')
           }
-          // Set empty backups array on error
           setBackups([])
           setCurrentVersion('v1.0.0')
         } finally {
@@ -687,37 +872,118 @@ export function OneAppData() {
     }
     
     showToast('Creating backup...', 'info')
-    try {
-      // Estimate size (in bytes) - in real implementation, calculate actual size
-      const estimatedSize = 2.5 * 1024 * 1024 // 2.5 MB
-      
-      const response = await api.post('/backup-versions', {
-        name: newBackupName,
-        size: estimatedSize,
-        description: 'Manual backup created from OneApp Data',
-        is_current: false,
+    // #region agent log
+    const supabaseClient = getSupabaseClient()
+    fetch('http://127.0.0.1:7244/ingest/d9b8d4a1-e56f-447d-a381-d93a62672caf', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        location: 'OneAppData.tsx:868',
+        message: 'Creating backup - checking Supabase connection',
+        data: { hasSupabaseClient: !!supabaseClient, backupName: newBackupName },
+        timestamp: Date.now(),
+        sessionId: 'debug-session',
+        hypothesisId: 'C'
       })
-      
-      if (response.data.success) {
-        const newBackup = {
-          id: response.data.data.id,
-          name: response.data.data.name,
-          size: response.data.data.size,
-          sizeFormatted: formatBytes(response.data.data.size),
-          lastUpdate: response.data.data.updated_at || response.data.data.created_at,
-          createdAt: response.data.data.created_at,
-          is_current: response.data.data.is_current,
-          storage_url: response.data.data.storage_url,
+    }).catch(() => {})
+    // #endregion
+    try {
+      const supabaseClient = getSupabaseClient()
+      if (supabaseClient) {
+        // Estimate size (in bytes) - in real implementation, calculate actual size
+        const estimatedSize = 2.5 * 1024 * 1024 // 2.5 MB
+        
+        const { data, error } = await supabaseClient
+          .from('backup_versions')
+          .insert({
+            name: newBackupName,
+            size: estimatedSize,
+            description: 'Manual backup created from OneApp Data',
+            is_current: false,
+          })
+          .select()
+          .single()
+        
+        // #region agent log
+        fetch('http://127.0.0.1:7244/ingest/d9b8d4a1-e56f-447d-a381-d93a62672caf', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            location: 'OneAppData.tsx:868',
+            message: 'Backup creation result',
+            data: { hasError: !!error, errorMessage: error?.message, hasData: !!data },
+            timestamp: Date.now(),
+            sessionId: 'debug-session',
+            hypothesisId: 'C'
+          })
+        }).catch(() => {})
+        // #endregion
+        
+        if (error) {
+          throw error
         }
-        setBackups(prev => [newBackup, ...prev])
-        setNewBackupName('')
-        setShowCreateBackupModal(false)
-        showToast('Backup created successfully', 'success')
+        
+        if (data) {
+          const newBackup = {
+            id: data.id,
+            name: data.name,
+            size: data.size,
+            sizeFormatted: formatBytes(data.size),
+            lastUpdate: data.updated_at || data.created_at,
+            createdAt: data.created_at,
+            is_current: data.is_current,
+            storage_url: data.storage_url,
+          }
+          setBackups(prev => [newBackup, ...prev])
+          setNewBackupName('')
+          setShowCreateBackupModal(false)
+          showToast('Backup created successfully', 'success')
+        }
+      } else {
+        // Fallback to API if Supabase not configured
+        const estimatedSize = 2.5 * 1024 * 1024 // 2.5 MB
+        const response = await api.post('/backup-versions', {
+          name: newBackupName,
+          size: estimatedSize,
+          description: 'Manual backup created from OneApp Data',
+          is_current: false,
+        })
+        
+        if (response.data.success) {
+          const newBackup = {
+            id: response.data.data.id,
+            name: response.data.data.name,
+            size: response.data.data.size,
+            sizeFormatted: formatBytes(response.data.data.size),
+            lastUpdate: response.data.data.updated_at || response.data.data.created_at,
+            createdAt: response.data.data.created_at,
+            is_current: response.data.data.is_current,
+            storage_url: response.data.data.storage_url,
+          }
+          setBackups(prev => [newBackup, ...prev])
+          setNewBackupName('')
+          setShowCreateBackupModal(false)
+          showToast('Backup created successfully', 'success')
+        }
       }
     } catch (error: any) {
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/d9b8d4a1-e56f-447d-a381-d93a62672caf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          location: 'OneAppData.tsx:868',
+          message: 'Error creating backup',
+          data: { error: error.message, code: error.code, status: error.response?.status },
+          timestamp: Date.now(),
+          sessionId: 'debug-session',
+          hypothesisId: 'C'
+        })
+      }).catch(() => {})
+      // #endregion
       console.error('Error creating backup:', error)
-      const errorMessage = error.response?.data?.error || error.message || 'Failed to create backup'
-      showToast(errorMessage, 'error', 5000) // Show for 5 seconds for longer error messages
+      const errorMessage = error.message || error.response?.data?.error || 'Failed to create backup'
+      showToast(errorMessage, 'error', 5000)
     }
   }
 
@@ -750,9 +1016,57 @@ export function OneAppData() {
     if (!backup) return
     
     showToast(`Applying backup "${backup.name}"...`, 'info')
+    // #region agent log
+    const supabaseClient = getSupabaseClient()
+    fetch('http://127.0.0.1:7244/ingest/d9b8d4a1-e56f-447d-a381-d93a62672caf', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        location: 'OneAppData.tsx:933',
+        message: 'Applying backup - checking Supabase connection',
+        data: { hasSupabaseClient: !!supabaseClient, backupId },
+        timestamp: Date.now(),
+        sessionId: 'debug-session',
+        hypothesisId: 'D'
+      })
+    }).catch(() => {})
+    // #endregion
     try {
-      const response = await api.put(`/backup-versions/${backupId}/apply`)
-      if (response.data.success) {
+      const supabaseClient = getSupabaseClient()
+      if (supabaseClient) {
+        // Unset all current backups
+        await supabaseClient
+          .from('backup_versions')
+          .update({ is_current: false })
+          .eq('is_current', true)
+        
+        // Set this backup as current
+        const { data, error } = await supabaseClient
+          .from('backup_versions')
+          .update({ is_current: true, updated_at: new Date().toISOString() })
+          .eq('id', backupId)
+          .select()
+          .single()
+        
+        // #region agent log
+        fetch('http://127.0.0.1:7244/ingest/d9b8d4a1-e56f-447d-a381-d93a62672caf', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            location: 'OneAppData.tsx:933',
+            message: 'Backup apply result',
+            data: { hasError: !!error, errorMessage: error?.message, hasData: !!data },
+            timestamp: Date.now(),
+            sessionId: 'debug-session',
+            hypothesisId: 'D'
+          })
+        }).catch(() => {})
+        // #endregion
+        
+        if (error) {
+          throw error
+        }
+        
         // Update local state
         setBackups(prev => prev.map(b => ({
           ...b,
@@ -760,10 +1074,35 @@ export function OneAppData() {
         })))
         setCurrentVersion(backup.name)
         showToast('Backup applied successfully', 'success')
+      } else {
+        // Fallback to API if Supabase not configured
+        const response = await api.put(`/backup-versions/${backupId}/apply`)
+        if (response.data.success) {
+          setBackups(prev => prev.map(b => ({
+            ...b,
+            is_current: b.id === backupId,
+          })))
+          setCurrentVersion(backup.name)
+          showToast('Backup applied successfully', 'success')
+        }
       }
     } catch (error: any) {
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/d9b8d4a1-e56f-447d-a381-d93a62672caf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          location: 'OneAppData.tsx:933',
+          message: 'Error applying backup',
+          data: { error: error.message, code: error.code, status: error.response?.status },
+          timestamp: Date.now(),
+          sessionId: 'debug-session',
+          hypothesisId: 'D'
+        })
+      }).catch(() => {})
+      // #endregion
       console.error('Error applying backup:', error)
-      showToast(error.response?.data?.error || 'Failed to apply backup', 'error')
+      showToast(error.message || error.response?.data?.error || 'Failed to apply backup', 'error')
     }
   }
 
