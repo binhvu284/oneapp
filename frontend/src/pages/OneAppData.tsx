@@ -596,6 +596,13 @@ CREATE TRIGGER update_backup_versions_updated_at BEFORE UPDATE ON backup_version
             // #endregion
             
             if (error) {
+              // Check for secret key error
+              if (error.message?.includes('secret API key') || error.message?.includes('Forbidden use of secret')) {
+                const errorMsg = 'SECURITY ERROR: You are using a SECRET API key instead of ANON key. Please use the "anon public" key from Supabase Dashboard → Settings → API. Delete the exposed secret key immediately!'
+                console.error('❌', errorMsg)
+                showToast(errorMsg, 'error', 10000)
+                throw new Error(errorMsg)
+              }
               throw error
             }
             
@@ -674,7 +681,14 @@ CREATE TRIGGER update_backup_versions_updated_at BEFORE UPDATE ON backup_version
           }).catch(() => {})
           // #endregion
           console.error('Error fetching backups:', error)
-          if (error.response?.status !== 503) {
+          
+          // Check for secret key error
+          if (error.message?.includes('secret API key') || error.message?.includes('Forbidden use of secret')) {
+            const errorMsg = 'SECURITY ERROR: Using SECRET key instead of ANON key. Use "anon public" key from Supabase Dashboard → Settings → API. Delete exposed secret key immediately!'
+            showToast(errorMsg, 'error', 10000)
+          } else if (error.response?.status === 401) {
+            showToast('Authentication failed. Please check your Supabase anon key.', 'error', 8000)
+          } else if (error.response?.status !== 503) {
             showToast(`Failed to load backups: ${error.message || 'Unknown error'}`, 'error')
           }
           setBackups([])

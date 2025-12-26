@@ -9,7 +9,13 @@
 3. Go to **Settings** → **API**
 4. Copy these values:
    - **Project URL** → This is your `VITE_SUPABASE_URL`
-   - **anon public** key → This is your `VITE_SUPABASE_ANON_KEY`
+   - **anon public** key → This is your `VITE_SUPABASE_ANON_KEY` ⚠️ **IMPORTANT: Use the ANON key, NOT the secret key!**
+
+**⚠️ CRITICAL SECURITY NOTE:**
+- ✅ **USE**: The **"anon public"** key (safe for frontend/browser)
+- ❌ **NEVER USE**: The **"service_role" secret** key (backend only, never expose in browser!)
+- The secret key will cause a "Forbidden use of secret API key in browser" error
+- If you accidentally exposed a secret key, delete it immediately from Supabase Dashboard
 
 ### Step 2: Add to Vercel
 
