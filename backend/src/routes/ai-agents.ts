@@ -154,7 +154,7 @@ router.post('/', async (req: Request, res: Response) => {
       })
     }
 
-    const { name, avatar_url, model, model_provider, description, memory_enabled, metadata } = req.body
+    const { name, avatar_url, model, model_provider, description, memory_enabled, metadata, is_default } = req.body
 
     if (!name || !model) {
       return res.status(400).json({
@@ -162,6 +162,32 @@ router.post('/', async (req: Request, res: Response) => {
         error: 'Missing required fields: name, model',
       })
     }
+
+    const isDefaultModel = is_default === true
+
+    // For default models, check if one already exists to prevent duplicates
+    if (isDefaultModel) {
+      const { data: existingDefault } = await supabase
+        .from('ai_agents')
+        .select('id')
+        .eq('is_default', true)
+        .eq('model', model)
+        .eq('model_provider', model_provider || null)
+        .maybeSingle()
+
+      if (existingDefault) {
+        return res.status(409).json({
+          success: false,
+          error: `Default ${model} model already exists`,
+        })
+      }
+    }
+
+    // For default models, memory_enabled must be false (they don't store memory)
+    // For custom agents, memory_enabled defaults to true
+    const finalMemoryEnabled = isDefaultModel 
+      ? false  // Default models don't store memory
+      : (memory_enabled !== undefined ? memory_enabled : true)  // Custom agents can have memory
 
     const { data, error } = await supabase
       .from('ai_agents')
@@ -171,9 +197,9 @@ router.post('/', async (req: Request, res: Response) => {
         model,
         model_provider: model_provider || null,
         description: description || null,
-        is_default: false,
-        is_active: false, // Custom agents start inactive until API key is set
-        memory_enabled: memory_enabled !== undefined ? memory_enabled : true,
+        is_default: isDefaultModel,
+        is_active: false, // Agents start inactive until API key is set and tested
+        memory_enabled: finalMemoryEnabled,
         memory_size_bytes: 0,
         memory_token_estimate: 0,
         knowledge_files: [],
@@ -183,6 +209,13 @@ router.post('/', async (req: Request, res: Response) => {
       .single()
 
     if (error) {
+      // Handle unique constraint violation
+      if (error.code === '23505' || error.message?.includes('unique') || error.message?.includes('duplicate')) {
+        return res.status(409).json({
+          success: false,
+          error: `Default ${model} model already exists`,
+        })
+      }
       throw error
     }
 
@@ -433,38 +466,95 @@ router.post('/:id/test-connection', async (req: Request, res: Response) => {
 
     try {
       if (agent.model === 'gemini' || agent.model_provider === 'google') {
-        // Test Gemini API
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${agent.api_key}`, {
+        // #region agent log - Test 1: List available models
+        console.log('[DEBUG] Testing Gemini API - Listing available models first')
+        const listModelsUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${agent.api_key}`
+        console.log('[DEBUG] List models URL:', listModelsUrl.replace(agent.api_key, 'REDACTED'))
+        
+        const listResponse = await fetch(listModelsUrl, {
+          method: 'GET',
+          signal: AbortSignal.timeout(10000),
+        })
+        
+        const listStatus = listResponse.status
+        let availableModels: string[] = []
+        
+        if (listResponse.ok) {
+          const listData = await listResponse.json()
+          availableModels = listData.models?.map((m: any) => m.name) || []
+          console.log('[DEBUG] Available models:', availableModels)
+        } else {
+          const listError = await listResponse.json().catch(() => ({}))
+          console.log('[DEBUG] List models failed:', listStatus, listError)
+        }
+        // #endregion
+
+        // #region agent log - Test 2: Try generation with gemini-flash-latest (alias to latest free tier model)
+        console.log('[DEBUG] Attempting generation with gemini-flash-latest')
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${agent.api_key}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            contents: [{ parts: [{ text: 'test' }] }],
+            contents: [{ 
+              role: 'user',
+              parts: [{ text: 'Hi' }] 
+            }],
+            generationConfig: {
+              temperature: 0.7,
+              maxOutputTokens: 100,
+            }
           }),
-          signal: AbortSignal.timeout(5000),
+          signal: AbortSignal.timeout(10000),
         })
 
+        console.log('[DEBUG] Generation response status:', response.status)
+
         if (response.ok) {
-          testResult = { success: true }
+          const data = await response.json()
+          console.log('[DEBUG] Generation response:', JSON.stringify(data).substring(0, 200))
+          if (data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+            testResult = { success: true }
+          } else {
+            testResult = { success: false, error: 'Invalid response format from Gemini API' }
+          }
         } else {
           const errorData = await response.json().catch(() => ({}))
-          testResult = { success: false, error: errorData.error?.message || `HTTP ${response.status}` }
+          console.log('[DEBUG] Generation error:', JSON.stringify(errorData))
+          
+          // Include available models in error message for debugging
+          let errorMsg = errorData.error?.message || `HTTP ${response.status}: ${response.statusText}`
+          if (availableModels.length > 0) {
+            errorMsg += ` | Available models: ${availableModels.slice(0, 5).join(', ')}`
+          }
+          testResult = { success: false, error: errorMsg }
         }
+        // #endregion
       } else if (agent.model === 'chatgpt' || agent.model_provider === 'openai') {
-        // Test OpenAI API
-        const response = await fetch('https://api.openai.com/v1/models', {
-          method: 'GET',
+        // Test OpenAI API with actual generation - using gpt-3.5-turbo
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
           headers: {
             'Authorization': `Bearer ${agent.api_key}`,
             'Content-Type': 'application/json',
           },
-          signal: AbortSignal.timeout(5000),
+          body: JSON.stringify({
+            model: 'gpt-3.5-turbo',
+            messages: [{ role: 'user', content: 'Hi' }],
+            max_tokens: 10,
+          }),
+          signal: AbortSignal.timeout(10000),
         })
 
         if (response.ok) {
-          testResult = { success: true }
+          const data = await response.json()
+          if (data?.choices?.[0]?.message?.content) {
+            testResult = { success: true }
+          } else {
+            testResult = { success: false, error: 'Invalid response format from ChatGPT API' }
+          }
         } else {
           const errorData = await response.json().catch(() => ({}))
-          testResult = { success: false, error: errorData.error?.message || `HTTP ${response.status}` }
+          testResult = { success: false, error: errorData.error?.message || `HTTP ${response.status}: ${response.statusText}` }
         }
       } else {
         testResult = { success: false, error: 'Unsupported model for testing' }
@@ -473,17 +563,40 @@ router.post('/:id/test-connection', async (req: Request, res: Response) => {
       testResult = { success: false, error: testError.message || 'Connection test failed' }
     }
 
-    // Update agent active status based on test result
-    if (testResult.success) {
-      await supabase
-        .from('ai_agents')
-        .update({ is_active: true })
-        .eq('id', id)
+    // Store test result in metadata for history
+    const testLog = {
+      timestamp: new Date().toISOString(),
+      success: testResult.success,
+      error: testResult.error || null,
+      model: agent.model
     }
+    
+    const existingMetadata = agent.metadata || {}
+    const connectionLogs = existingMetadata.connection_logs || []
+    connectionLogs.unshift(testLog) // Add to beginning
+    const recentLogs = connectionLogs.slice(0, 10) // Keep last 10 logs
+    
+    await supabase
+      .from('ai_agents')
+      .update({ 
+        metadata: { 
+          ...existingMetadata, 
+          connection_logs: recentLogs,
+          last_connection_test: testLog
+        }
+      })
+      .eq('id', id)
+
+    // Update agent active status based on test result
+    await supabase
+      .from('ai_agents')
+      .update({ is_active: testResult.success })
+      .eq('id', id)
 
     res.json({
       success: true,
       testResult,
+      connectionLog: testLog
     })
   } catch (error: any) {
     console.error('Error testing connection:', error)

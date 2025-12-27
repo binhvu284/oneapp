@@ -1,6 +1,67 @@
 -- WARNING: This schema is for context only and is not meant to be run.
 -- Table order and constraints may not be valid for execution.
 
+CREATE TABLE public.ai_agent_data (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  agent_id uuid NOT NULL,
+  data_type character varying NOT NULL,
+  data_content jsonb NOT NULL DEFAULT '{}'::jsonb,
+  tags ARRAY DEFAULT '{}'::text[],
+  importance_score numeric NOT NULL DEFAULT 0.5,
+  created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT ai_agent_data_pkey PRIMARY KEY (id),
+  CONSTRAINT ai_agent_data_agent_id_fkey FOREIGN KEY (agent_id) REFERENCES public.ai_agents(id)
+);
+CREATE TABLE public.ai_agent_memory (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  agent_id uuid NOT NULL,
+  content text NOT NULL,
+  context jsonb DEFAULT '{}'::jsonb,
+  importance_score numeric NOT NULL DEFAULT 0.5,
+  size_bytes bigint NOT NULL DEFAULT 0,
+  token_estimate integer NOT NULL DEFAULT 0,
+  created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT ai_agent_memory_pkey PRIMARY KEY (id),
+  CONSTRAINT ai_agent_memory_agent_id_fkey FOREIGN KEY (agent_id) REFERENCES public.ai_agents(id)
+);
+CREATE TABLE public.ai_agents (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  name character varying NOT NULL,
+  avatar_url text,
+  model character varying NOT NULL,
+  model_provider character varying,
+  api_key text,
+  description text,
+  is_default boolean NOT NULL DEFAULT false,
+  is_active boolean NOT NULL DEFAULT false,
+  memory_enabled boolean NOT NULL DEFAULT true,
+  memory_size_bytes bigint NOT NULL DEFAULT 0,
+  memory_token_estimate integer NOT NULL DEFAULT 0,
+  knowledge_files jsonb DEFAULT '[]'::jsonb,
+  metadata jsonb DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT ai_agents_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.ai_conversations (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL,
+  agent_id uuid,
+  title character varying NOT NULL DEFAULT 'New Conversation',
+  pinned boolean NOT NULL DEFAULT false,
+  total_tokens integer NOT NULL DEFAULT 0,
+  message_count integer NOT NULL DEFAULT 0,
+  settings jsonb DEFAULT '{}'::jsonb,
+  metadata jsonb DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  deleted_at timestamp with time zone,
+  CONSTRAINT ai_conversations_pkey PRIMARY KEY (id),
+  CONSTRAINT ai_conversations_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
+  CONSTRAINT ai_conversations_agent_id_fkey FOREIGN KEY (agent_id) REFERENCES public.ai_agents(id)
+);
 CREATE TABLE public.ai_interactions (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   user_id uuid NOT NULL,
@@ -10,6 +71,34 @@ CREATE TABLE public.ai_interactions (
   created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT ai_interactions_pkey PRIMARY KEY (id),
   CONSTRAINT ai_interactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.ai_message_files (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  message_id uuid NOT NULL,
+  file_id uuid,
+  file_name character varying NOT NULL,
+  file_type character varying,
+  file_size bigint DEFAULT 0,
+  file_url text,
+  processing_status character varying DEFAULT 'pending',
+  extracted_text text,
+  created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT ai_message_files_pkey PRIMARY KEY (id),
+  CONSTRAINT ai_message_files_message_id_fkey FOREIGN KEY (message_id) REFERENCES public.ai_messages(id),
+  CONSTRAINT ai_message_files_file_id_fkey FOREIGN KEY (file_id) REFERENCES public.files(id)
+);
+CREATE TABLE public.ai_messages (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  conversation_id uuid NOT NULL,
+  role character varying NOT NULL CHECK (role::text = ANY (ARRAY['user'::character varying, 'assistant'::character varying, 'system'::character varying]::text[])),
+  content text NOT NULL,
+  token_count integer DEFAULT 0,
+  metadata jsonb DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  deleted_at timestamp with time zone,
+  CONSTRAINT ai_messages_pkey PRIMARY KEY (id),
+  CONSTRAINT ai_messages_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES public.ai_conversations(id)
 );
 CREATE TABLE public.analytics (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -95,13 +184,10 @@ CREATE TABLE public.oneapp_users (
   name character varying NOT NULL,
   email character varying NOT NULL UNIQUE,
   phone character varying,
-  password text,
-  invite_code character varying,
-  email_verified boolean DEFAULT false,
-  last_login timestamp with time zone,
   user_data jsonb DEFAULT '{}'::jsonb,
   created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
   updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  password text,
   CONSTRAINT oneapp_users_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.tasks (

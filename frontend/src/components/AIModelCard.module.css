@@ -2,7 +2,7 @@
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 24px;
+  padding: 16px 20px;
   transition: all 0.2s ease;
 }
 
@@ -11,31 +11,44 @@
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
 }
 
-.cardHeader {
+.cardRow {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 24px;
-  gap: 16px;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
 }
 
 .modelInfo {
   display: flex;
-  align-items: flex-start;
-  gap: 16px;
-  flex: 1;
+  align-items: center;
+  gap: 12px;
+  flex: 0 0 auto;
+  min-width: 200px;
 }
 
 .modelIcon {
-  width: 56px;
-  height: 56px;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: rgba(37, 99, 235, 0.1);
-  border-radius: 12px;
-  font-size: 2rem;
+  border-radius: 8px;
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+/* Fixed background for ChatGPT icon to work in both light and dark themes */
+.chatgptIcon {
+  background: #3c3c3c;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.modelIconImage {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 8px;
 }
 
 .modelDetails {
@@ -43,23 +56,55 @@
   min-width: 0;
 }
 
-.modelName {
-  margin: 0 0 8px 0;
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--text);
-}
-
-.modelDescription {
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-  margin: 0;
-  line-height: 1.5;
-}
-
-.cardActions {
+.modelNameRow {
   display: flex;
   align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+
+.modelName {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.modelVersion {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  padding: 3px 8px;
+  background: var(--bg);
+  border-radius: 4px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.connectedBadge,
+.disconnectedBadge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.connectedBadge {
+  color: var(--success);
+  background: rgba(34, 197, 94, 0.1);
+}
+
+.disconnectedBadge {
+  color: var(--error);
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.statusIcon {
+  width: 12px;
+  height: 12px;
 }
 
 .toggleSwitch {
@@ -113,35 +158,49 @@
 }
 
 .apiKeySection {
-  padding-top: 24px;
-  border-top: 1px solid var(--border);
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
 }
 
-.apiKeyInputWrapper {
-  margin-bottom: 16px;
+.actionsSection {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 0 0 auto;
 }
 
-.apiKeyLabel {
-  display: block;
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: var(--text);
-  margin-bottom: 8px;
+.toggleSection {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+.apiKeyInputRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 500px;
 }
 
 .passwordInputWrapper {
   position: relative;
   display: flex;
   align-items: center;
+  flex: 1;
+  min-width: 0;
 }
 
 .apiKeyInput {
   width: 100%;
-  padding: 10px 44px 10px 12px;
+  padding: 8px 36px 8px 10px;
   background: var(--background);
   border: 1px solid var(--border);
   border-radius: 6px;
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   color: var(--text);
   font-family: 'Courier New', monospace;
   transition: all 0.2s ease;
@@ -155,12 +214,12 @@
 
 .passwordToggle {
   position: absolute;
-  right: 12px;
+  right: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 24px;
+  height: 24px;
   background: transparent;
   border: none;
   color: var(--text-secondary);
@@ -175,51 +234,60 @@
 }
 
 .passwordToggle svg {
-  width: 18px;
-  height: 18px;
-}
-
-.connectionSection {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.connectionStatus {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.connectedIcon {
-  width: 18px;
-  height: 18px;
-  color: var(--success);
+  width: 14px;
+  height: 14px;
 }
 
 .connectedText {
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: var(--success);
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
 }
 
-.disconnectedIcon {
-  width: 18px;
-  height: 18px;
-  color: var(--error);
-}
-
-.disconnectedText {
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: var(--error);
-}
-
-.connectionActions {
+.manageApiButton {
   display: flex;
-  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.manageApiButton:hover {
+  background: var(--bg-hover);
+  border-color: var(--text-secondary);
+}
+
+.manageApiButton svg {
+  width: 16px;
+  height: 16px;
+}
+
+.cancelManageButton {
+  padding: 6px 12px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.cancelManageButton:hover {
+  background: var(--bg-hover);
+  border-color: var(--border);
+  color: var(--text);
 }
 
 .saveButton,
@@ -228,13 +296,14 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 8px 16px;
+  padding: 6px 12px;
   border-radius: 6px;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
   border: none;
+  white-space: nowrap;
 }
 
 .saveButton {
@@ -270,8 +339,8 @@
 }
 
 .connectButton svg {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
 }
 
 .spinning {

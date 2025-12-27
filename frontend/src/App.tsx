@@ -36,7 +36,7 @@ const pageTitles: Record<string, string> = {
   '/oneapp-developer': 'OneApp Developer',
   '/oneapp-data': 'OneApp Data',
   '/onlyapi': 'OnlyAPI',
-  '/ai': 'AI Assistant',
+  '/ai': 'OneApp AI',
   '/ai/chat': 'AI Chat',
   '/ai/popup': 'AI Popup',
   '/ai/translate': 'AI Translate',
@@ -57,15 +57,15 @@ const pageTitles: Record<string, string> = {
 
 const pageBreadcrumbs: Record<string, Array<{ label: string; path: string }>> = {
   '/ai/chat': [
-    { label: 'AI Assistant', path: '/ai' },
+    { label: 'OneApp AI', path: '/ai' },
     { label: 'AI Chat', path: '/ai/chat' },
   ],
   '/ai/popup': [
-    { label: 'AI Assistant', path: '/ai' },
+    { label: 'OneApp AI', path: '/ai' },
     { label: 'AI Popup', path: '/ai/popup' },
   ],
   '/ai/translate': [
-    { label: 'AI Assistant', path: '/ai' },
+    { label: 'OneApp AI', path: '/ai' },
     { label: 'AI Translate', path: '/ai/translate' },
   ],
   '/customization/interface/theme': [

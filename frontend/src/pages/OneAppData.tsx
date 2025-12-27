@@ -116,7 +116,8 @@ function parseSQLSchema(sql: string): DatabaseSchema {
   }
 
   // Match CREATE TABLE statements (handles multi-line table definitions)
-  const createTableRegex = /CREATE TABLE (?:IF NOT EXISTS )?(\w+)\s*\(([\s\S]*?)\);/gi
+  // Handles both "CREATE TABLE table_name" and "CREATE TABLE public.table_name" formats
+  const createTableRegex = /CREATE TABLE (?:IF NOT EXISTS )?(?:public\.)?(\w+)\s*\(([\s\S]*?)\);/gi
   let match
 
   while ((match = createTableRegex.exec(sql)) !== null) {
@@ -154,8 +155,9 @@ function parseSQLSchema(sql: string): DatabaseSchema {
         continue
       }
 
-      // Extract field name and type - handle UUID, VARCHAR(100), TEXT, etc.
-      const fieldMatch = trimmedLine.match(/^(\w+)\s+([A-Z_]+(?:\([^)]+\))?(?:\s+[A-Z\s]+)?)/i)
+      // Extract field name and type - handle UUID, VARCHAR(100), CHARACTER VARYING, TEXT, etc.
+      // Match field name and type (handles "character varying", "character varying(255)", etc.)
+      const fieldMatch = trimmedLine.match(/^(\w+)\s+((?:character\s+varying|numeric|timestamp\s+with\s+time\s+zone|[a-z_]+)(?:\([^)]+\))?(?:\s+[A-Z\s]+)?)/i)
       if (!fieldMatch) continue
 
       const fieldName = fieldMatch[1]
@@ -163,11 +165,16 @@ function parseSQLSchema(sql: string): DatabaseSchema {
       
       // Extract more specific type info before cleaning
       let displayType = fieldType
-      if (fieldType.match(/VARCHAR\((\d+)\)/i)) {
+      if (fieldType.match(/character\s+varying\((\d+)\)/i)) {
+        const varcharMatch = fieldType.match(/character\s+varying\((\d+)\)/i)
+        displayType = varcharMatch ? `VARCHAR(${varcharMatch[1]})` : 'VARCHAR'
+      } else if (fieldType.match(/VARCHAR\((\d+)\)/i)) {
         const varcharMatch = fieldType.match(/VARCHAR\((\d+)\)/i)
         displayType = varcharMatch ? `VARCHAR(${varcharMatch[1]})` : 'VARCHAR'
-      } else if (fieldType.includes('TEXT[]')) {
-        displayType = 'TEXT[]'
+      } else if (fieldType.match(/character\s+varying/i)) {
+        displayType = 'VARCHAR'
+      } else if (fieldType.includes('TEXT[]') || fieldType.includes('ARRAY')) {
+        displayType = 'ARRAY'
       } else if (fieldType.includes('JSONB')) {
         displayType = 'JSONB'
       } else if (fieldType.includes('TIMESTAMP WITH TIME ZONE')) {
@@ -180,9 +187,13 @@ function parseSQLSchema(sql: string): DatabaseSchema {
         displayType = 'BOOLEAN'
       } else if (fieldType.includes('UUID')) {
         displayType = 'UUID'
+      } else if (fieldType.includes('NUMERIC')) {
+        displayType = 'NUMERIC'
+      } else if (fieldType.includes('TEXT')) {
+        displayType = 'TEXT'
       } else {
         // Clean up type (remove parentheses content for display if not already handled)
-        displayType = fieldType.split('(')[0].toUpperCase()
+        displayType = fieldType.split('(')[0].toUpperCase().replace(/\s+/g, ' ')
       }
       
       // Check if required (NOT NULL) - but allow DEFAULT values
@@ -469,159 +480,171 @@ export function OneAppData() {
           if (supabaseClient) {
             // Schema is static, so we'll use the embedded version
             // In production, you could store it in Supabase Storage or fetch from a CDN
-            const embeddedSchema = `-- OneApp Database Schema
--- PostgreSQL (Supabase)
+            // Updated to match database/schema.sql
+            const embeddedSchema = `-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
 
--- Enable UUID extension
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
--- OneApp Users Table
-CREATE TABLE IF NOT EXISTS oneapp_users (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  name VARCHAR(255) NOT NULL,
-  email VARCHAR(255) NOT NULL UNIQUE,
-  phone VARCHAR(20),
-  user_data JSONB DEFAULT '{}'::jsonb,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE public.ai_agent_data (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  agent_id uuid NOT NULL,
+  data_type character varying NOT NULL,
+  data_content jsonb NOT NULL DEFAULT '{}'::jsonb,
+  tags ARRAY DEFAULT '{}'::text[],
+  importance_score numeric NOT NULL DEFAULT 0.5,
+  created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT ai_agent_data_pkey PRIMARY KEY (id),
+  CONSTRAINT ai_agent_data_agent_id_fkey FOREIGN KEY (agent_id) REFERENCES public.ai_agents(id)
 );
-
--- Modules Table
-CREATE TABLE IF NOT EXISTS modules (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  name VARCHAR(100) NOT NULL UNIQUE,
-  description TEXT,
-  status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('active', 'inactive', 'pending')),
-  icon VARCHAR(10),
-  version VARCHAR(20) DEFAULT '1.0.0',
-  dependencies TEXT[],
-  config JSONB DEFAULT '{}'::jsonb,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE public.ai_agent_memory (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  agent_id uuid NOT NULL,
+  content text NOT NULL,
+  context jsonb DEFAULT '{}'::jsonb,
+  importance_score numeric NOT NULL DEFAULT 0.5,
+  size_bytes bigint NOT NULL DEFAULT 0,
+  token_estimate integer NOT NULL DEFAULT 0,
+  created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT ai_agent_memory_pkey PRIMARY KEY (id),
+  CONSTRAINT ai_agent_memory_agent_id_fkey FOREIGN KEY (agent_id) REFERENCES public.ai_agents(id)
 );
-
--- Module Config Table
-CREATE TABLE IF NOT EXISTS module_config (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  module_id UUID NOT NULL REFERENCES modules(id) ON DELETE CASCADE,
-  config JSONB DEFAULT '{}'::jsonb,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE(user_id, module_id)
+CREATE TABLE public.ai_agents (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  name character varying NOT NULL,
+  avatar_url text,
+  model character varying NOT NULL,
+  model_provider character varying,
+  api_key text,
+  description text,
+  is_default boolean NOT NULL DEFAULT false,
+  is_active boolean NOT NULL DEFAULT false,
+  memory_enabled boolean NOT NULL DEFAULT true,
+  memory_size_bytes bigint NOT NULL DEFAULT 0,
+  memory_token_estimate integer NOT NULL DEFAULT 0,
+  knowledge_files jsonb DEFAULT '[]'::jsonb,
+  metadata jsonb DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT ai_agents_pkey PRIMARY KEY (id)
 );
-
--- AI Interactions Table
-CREATE TABLE IF NOT EXISTS ai_interactions (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  role VARCHAR(20) NOT NULL CHECK (role IN ('user', 'assistant')),
-  content TEXT NOT NULL,
-  metadata JSONB DEFAULT '{}'::jsonb,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE public.ai_interactions (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL,
+  role character varying NOT NULL CHECK (role::text = ANY (ARRAY['user'::character varying, 'assistant'::character varying]::text[])),
+  content text NOT NULL,
+  metadata jsonb DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT ai_interactions_pkey PRIMARY KEY (id),
+  CONSTRAINT ai_interactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
-
--- Tasks Table
-CREATE TABLE IF NOT EXISTS tasks (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  title VARCHAR(255) NOT NULL,
-  description TEXT,
-  status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'in-progress', 'completed', 'cancelled')),
-  priority VARCHAR(10) NOT NULL DEFAULT 'medium' CHECK (priority IN ('low', 'medium', 'high')),
-  due_date TIMESTAMP WITH TIME ZONE,
-  completed_at TIMESTAMP WITH TIME ZONE,
-  metadata JSONB DEFAULT '{}'::jsonb,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE public.analytics (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL,
+  event_type character varying NOT NULL,
+  module_id uuid,
+  metadata jsonb DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT analytics_pkey PRIMARY KEY (id),
+  CONSTRAINT analytics_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
+  CONSTRAINT analytics_module_id_fkey FOREIGN KEY (module_id) REFERENCES public.modules(id)
 );
-
--- Files Table
-CREATE TABLE IF NOT EXISTS files (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  name VARCHAR(255) NOT NULL,
-  path TEXT NOT NULL,
-  size BIGINT NOT NULL,
-  mime_type VARCHAR(100),
-  storage_url TEXT,
-  category VARCHAR(50),
-  tags TEXT[],
-  metadata JSONB DEFAULT '{}'::jsonb,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE public.apis (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  name character varying NOT NULL,
+  type character varying NOT NULL,
+  api_url text NOT NULL,
+  api_key text NOT NULL,
+  status character varying NOT NULL DEFAULT 'unknown'::character varying CHECK (status::text = ANY (ARRAY['connected'::character varying, 'disconnected'::character varying, 'error'::character varying, 'unknown'::character varying]::text[])),
+  last_checked timestamp with time zone,
+  app_source character varying,
+  description text,
+  enabled boolean DEFAULT true,
+  metadata jsonb DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT apis_pkey PRIMARY KEY (id)
 );
-
--- Analytics Table
-CREATE TABLE IF NOT EXISTS analytics (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  event_type VARCHAR(50) NOT NULL,
-  module_id UUID REFERENCES modules(id) ON DELETE SET NULL,
-  metadata JSONB DEFAULT '{}'::jsonb,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE public.backup_versions (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  name character varying NOT NULL,
+  size bigint NOT NULL,
+  storage_url text,
+  description text,
+  is_current boolean DEFAULT false,
+  metadata jsonb DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT backup_versions_pkey PRIMARY KEY (id)
 );
-
--- Backup Versions Table
-CREATE TABLE IF NOT EXISTS backup_versions (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  name VARCHAR(255) NOT NULL,
-  size BIGINT NOT NULL,
-  storage_url TEXT,
-  description TEXT,
-  is_current BOOLEAN DEFAULT FALSE,
-  metadata JSONB DEFAULT '{}'::jsonb,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE public.files (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL,
+  name character varying NOT NULL,
+  path text NOT NULL,
+  size bigint NOT NULL,
+  mime_type character varying,
+  storage_url text,
+  category character varying,
+  tags ARRAY,
+  metadata jsonb DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT files_pkey PRIMARY KEY (id),
+  CONSTRAINT files_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
-
--- Indexes for performance
-CREATE INDEX IF NOT EXISTS idx_oneapp_users_email ON oneapp_users(email);
-CREATE INDEX IF NOT EXISTS idx_oneapp_users_created_at ON oneapp_users(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_module_config_user_id ON module_config(user_id);
-CREATE INDEX IF NOT EXISTS idx_module_config_module_id ON module_config(module_id);
-CREATE INDEX IF NOT EXISTS idx_ai_interactions_user_id ON ai_interactions(user_id);
-CREATE INDEX IF NOT EXISTS idx_ai_interactions_created_at ON ai_interactions(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_tasks_user_id ON tasks(user_id);
-CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
-CREATE INDEX IF NOT EXISTS idx_tasks_due_date ON tasks(due_date);
-CREATE INDEX IF NOT EXISTS idx_files_user_id ON files(user_id);
-CREATE INDEX IF NOT EXISTS idx_files_category ON files(category);
-CREATE INDEX IF NOT EXISTS idx_analytics_user_id ON analytics(user_id);
-CREATE INDEX IF NOT EXISTS idx_analytics_event_type ON analytics(event_type);
-CREATE INDEX IF NOT EXISTS idx_analytics_created_at ON analytics(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_backup_versions_is_current ON backup_versions(is_current);
-CREATE INDEX IF NOT EXISTS idx_backup_versions_created_at ON backup_versions(created_at DESC);
-
--- Function to update updated_at timestamp
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = CURRENT_TIMESTAMP;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- Triggers to automatically update updated_at
-CREATE TRIGGER update_oneapp_users_updated_at BEFORE UPDATE ON oneapp_users
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_modules_updated_at BEFORE UPDATE ON modules
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_module_config_updated_at BEFORE UPDATE ON module_config
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_tasks_updated_at BEFORE UPDATE ON tasks
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_files_updated_at BEFORE UPDATE ON files
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_backup_versions_updated_at BEFORE UPDATE ON backup_versions
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();`
+CREATE TABLE public.module_config (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL,
+  module_id uuid NOT NULL,
+  config jsonb DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT module_config_pkey PRIMARY KEY (id),
+  CONSTRAINT module_config_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
+  CONSTRAINT module_config_module_id_fkey FOREIGN KEY (module_id) REFERENCES public.modules(id)
+);
+CREATE TABLE public.modules (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  name character varying NOT NULL UNIQUE,
+  description text,
+  status character varying NOT NULL DEFAULT 'pending'::character varying CHECK (status::text = ANY (ARRAY['active'::character varying, 'inactive'::character varying, 'pending'::character varying]::text[])),
+  icon character varying,
+  version character varying DEFAULT '1.0.0'::character varying,
+  dependencies ARRAY,
+  config jsonb DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT modules_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.oneapp_users (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  name character varying NOT NULL,
+  email character varying NOT NULL UNIQUE,
+  phone character varying,
+  user_data jsonb DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  password text,
+  CONSTRAINT oneapp_users_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.tasks (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL,
+  title character varying NOT NULL,
+  description text,
+  status character varying NOT NULL DEFAULT 'pending'::character varying CHECK (status::text = ANY (ARRAY['pending'::character varying, 'in-progress'::character varying, 'completed'::character varying, 'cancelled'::character varying]::text[])),
+  priority character varying NOT NULL DEFAULT 'medium'::character varying CHECK (priority::text = ANY (ARRAY['low'::character varying, 'medium'::character varying, 'high'::character varying]::text[])),
+  due_date timestamp with time zone,
+  completed_at timestamp with time zone,
+  metadata jsonb DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT tasks_pkey PRIMARY KEY (id),
+  CONSTRAINT tasks_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);`
             setSchemaSQL(embeddedSchema)
-            setSchemaViewMode('sql')
+            setSchemaViewMode('list') // Default to list view to show structure
             // #region agent log
             fetch('http://127.0.0.1:7244/ingest/d9b8d4a1-e56f-447d-a381-d93a62672caf', {
               method: 'POST',
@@ -643,7 +666,7 @@ CREATE TRIGGER update_backup_versions_updated_at BEFORE UPDATE ON backup_version
                 const response = await api.get('/schema')
                 if (response.data.success) {
                   setSchemaSQL(response.data.data.sql)
-                  setSchemaViewMode('sql')
+                  setSchemaViewMode('list') // Default to list view to show structure
                 }
               } catch (apiError) {
                 console.error('API fallback also failed:', apiError)

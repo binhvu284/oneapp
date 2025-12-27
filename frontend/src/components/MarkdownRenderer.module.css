@@ -1,0 +1,192 @@
+.markdown {
+  line-height: 1.6;
+  color: var(--text);
+}
+
+/* Headings */
+.h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin: 1.5rem 0 1rem 0;
+  color: var(--text);
+  border-bottom: 2px solid var(--border);
+  padding-bottom: 0.5rem;
+}
+
+.h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 1.3rem 0 0.8rem 0;
+  color: var(--text);
+}
+
+.h3 {
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin: 1.2rem 0 0.7rem 0;
+  color: var(--text);
+}
+
+.h4 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 1rem 0 0.6rem 0;
+  color: var(--text);
+}
+
+/* Paragraph */
+.paragraph {
+  margin: 0.8rem 0;
+  line-height: 1.7;
+}
+
+/* Lists */
+.list,
+.orderedList {
+  margin: 0.8rem 0;
+  padding-left: 2rem;
+}
+
+.list li,
+.orderedList li {
+  margin: 0.4rem 0;
+  line-height: 1.6;
+}
+
+.list {
+  list-style-type: disc;
+}
+
+.orderedList {
+  list-style-type: decimal;
+}
+
+/* Code Blocks */
+.codeBlock {
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1rem 0;
+  overflow-x: auto;
+  font-family: 'Courier New', Consolas, Monaco, monospace;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.codeBlock code {
+  background: transparent;
+  padding: 0;
+  border: none;
+  color: #c9d1d9;
+}
+
+.inlineCode {
+  background: rgba(110, 118, 129, 0.2);
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  font-family: 'Courier New', Consolas, Monaco, monospace;
+  font-size: 0.9em;
+  color: #ff7b72;
+  border: 1px solid rgba(110, 118, 129, 0.3);
+}
+
+/* Tables */
+.tableWrapper {
+  overflow-x: auto;
+  margin: 1rem 0;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.table th {
+  background: var(--bg);
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  border-bottom: 2px solid var(--border);
+  color: var(--text);
+}
+
+.table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+.table tr:hover {
+  background: var(--bg-hover);
+}
+
+/* Blockquote */
+.blockquote {
+  border-left: 4px solid var(--primary);
+  padding-left: 1rem;
+  margin: 1rem 0;
+  color: var(--text-secondary);
+  font-style: italic;
+  background: rgba(37, 99, 235, 0.05);
+  padding: 0.8rem 1rem;
+  border-radius: 0 8px 8px 0;
+}
+
+/* Links */
+.link {
+  color: var(--primary);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s ease;
+}
+
+.link:hover {
+  border-bottom-color: var(--primary);
+}
+
+/* Horizontal Rule */
+.markdown hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 1.5rem 0;
+}
+
+/* Strong/Bold */
+.markdown strong {
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* Emphasis/Italic */
+.markdown em {
+  font-style: italic;
+  color: var(--text-secondary);
+}
+
+/* Strikethrough */
+.markdown del {
+  text-decoration: line-through;
+  color: var(--text-secondary);
+}
+
+/* Image */
+.markdown img {
+  max-width: 100%;
+  border-radius: 8px;
+  margin: 1rem 0;
+}
+
+/* Task List */
+.markdown input[type="checkbox"] {
+  margin-right: 0.5rem;
+}
+

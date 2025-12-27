@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import api from '@/services/api'
 import { IconChevronDown, IconCheckCircle } from '@/components/Icons'
+import geminiLogo from '@/logo/gemeni.png'
+import chatgptLogo from '@/logo/ChatGPT.png'
 import styles from './AgentSelector.module.css'
 
 interface Agent {
@@ -8,6 +10,8 @@ interface Agent {
   name: string
   avatar_url?: string
   model: string
+  model_provider?: string
+  api_key?: string
   is_active: boolean
   is_default: boolean
 }
@@ -43,6 +47,37 @@ export function AgentSelector({ selectedAgentId, onSelect, className }: AgentSel
 
   const selectedAgent = agents.find((a) => a.id === selectedAgentId)
 
+  // Helper function to get agent logo
+  const getAgentLogo = (agent: Agent) => {
+    if (agent.avatar_url) {
+      return agent.avatar_url
+    }
+    // For default models, use the correct logo
+    if (agent.is_default) {
+      if (agent.model === 'gemini' || agent.model_provider === 'google') {
+        return geminiLogo
+      }
+      if (agent.model === 'chatgpt' || agent.model_provider === 'openai') {
+        return chatgptLogo
+      }
+    }
+    return null
+  }
+
+  // Helper function to get model version
+  const getModelVersion = (agent: Agent): string => {
+    if (agent.is_default) {
+      if (agent.model === 'gemini' || agent.model_provider === 'google') {
+        return agent.api_key ? 'Gemini Flash' : ''
+      }
+      if (agent.model === 'chatgpt' || agent.model_provider === 'openai') {
+        return agent.api_key ? 'GPT-3.5 Turbo' : ''
+      }
+    }
+    // For custom agents, show the model name
+    return agent.model || ''
+  }
+
   return (
     <div className={`${styles.agentSelector} ${className || ''}`}>
       <button
@@ -52,13 +87,19 @@ export function AgentSelector({ selectedAgentId, onSelect, className }: AgentSel
       >
         {selectedAgent ? (
           <>
-            {selectedAgent.avatar_url ? (
-              <img src={selectedAgent.avatar_url} alt={selectedAgent.name} className={styles.avatar} />
-            ) : (
-              <div className={styles.avatarPlaceholder}>{selectedAgent.name.charAt(0)}</div>
-            )}
+            {(() => {
+              const logo = getAgentLogo(selectedAgent)
+              return logo ? (
+                <img 
+                  src={logo} 
+                  alt={selectedAgent.name} 
+                  className={`${styles.avatar} ${selectedAgent.is_default && (selectedAgent.model === 'chatgpt' || selectedAgent.model_provider === 'openai') ? styles.chatgptAvatar : ''}`} 
+                />
+              ) : (
+                <div className={styles.avatarPlaceholder}>{selectedAgent.name.charAt(0)}</div>
+              )
+            })()}
             <span className={styles.agentName}>{selectedAgent.name}</span>
-            <span className={styles.modelBadge}>{selectedAgent.model}</span>
           </>
         ) : (
           <span className={styles.placeholder}>Select an agent...</span>
@@ -70,29 +111,39 @@ export function AgentSelector({ selectedAgentId, onSelect, className }: AgentSel
         <>
           <div className={styles.overlay} onClick={() => setIsOpen(false)} />
           <div className={styles.dropdown}>
-            {agents.map((agent) => (
-              <button
-                key={agent.id}
-                className={`${styles.option} ${selectedAgentId === agent.id ? styles.selected : ''}`}
-                onClick={() => {
-                  onSelect(agent.id)
-                  setIsOpen(false)
-                }}
-              >
-                {agent.avatar_url ? (
-                  <img src={agent.avatar_url} alt={agent.name} className={styles.optionAvatar} />
-                ) : (
-                  <div className={styles.optionAvatarPlaceholder}>{agent.name.charAt(0)}</div>
-                )}
-                <div className={styles.optionInfo}>
-                  <div className={styles.optionName}>{agent.name}</div>
-                  <div className={styles.optionModel}>{agent.model}</div>
-                </div>
-                {selectedAgentId === agent.id && (
-                  <IconCheckCircle className={styles.checkIcon} />
-                )}
-              </button>
-            ))}
+            {agents.map((agent) => {
+              const agentLogo = getAgentLogo(agent)
+              const modelVersion = getModelVersion(agent)
+              return (
+                <button
+                  key={agent.id}
+                  className={`${styles.option} ${selectedAgentId === agent.id ? styles.selected : ''}`}
+                  onClick={() => {
+                    onSelect(agent.id)
+                    setIsOpen(false)
+                  }}
+                >
+                  {agentLogo ? (
+                    <img 
+                      src={agentLogo} 
+                      alt={agent.name} 
+                      className={`${styles.optionAvatar} ${agent.is_default && (agent.model === 'chatgpt' || agent.model_provider === 'openai') ? styles.chatgptOptionAvatar : ''}`} 
+                    />
+                  ) : (
+                    <div className={styles.optionAvatarPlaceholder}>{agent.name.charAt(0)}</div>
+                  )}
+                  <div className={styles.optionInfo}>
+                    <div className={styles.optionName}>{agent.name}</div>
+                    {modelVersion && (
+                      <div className={styles.optionModel}>{modelVersion}</div>
+                    )}
+                  </div>
+                  {selectedAgentId === agent.id && (
+                    <IconCheckCircle className={styles.checkIcon} />
+                  )}
+                </button>
+              )
+            })}
           </div>
         </>
       )}

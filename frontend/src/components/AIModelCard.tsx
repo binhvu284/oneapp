@@ -1,5 +1,8 @@
 import { useState } from 'react'
-import { IconEye, IconEyeOff, IconCheckCircle, IconXCircle, IconRefreshCw } from '@/components/Icons'
+import { IconCheckCircle, IconXCircle, IconKey } from '@/components/Icons'
+import { ManageAPIModal } from './ManageAPIModal'
+import geminiLogo from '@/logo/gemeni.png'
+import chatgptLogo from '@/logo/ChatGPT.png'
 import styles from './AIModelCard.module.css'
 
 interface AIModelCardProps {
@@ -9,10 +12,10 @@ interface AIModelCardProps {
   apiKey?: string
   isConnected: boolean
   isActive: boolean
-  onApiKeyChange: (apiKey: string) => void
-  onConnect: () => void
+  agentId?: string
+  onApiKeyChange: (apiKey: string) => Promise<void>
   onToggle: () => void
-  testing: boolean
+  onConnectionSuccess?: () => void
 }
 
 export function AIModelCard({
@@ -22,31 +25,64 @@ export function AIModelCard({
   apiKey = '',
   isConnected,
   isActive,
+  agentId,
   onApiKeyChange,
-  onConnect,
   onToggle,
-  testing,
+  onConnectionSuccess,
 }: AIModelCardProps) {
-  const [showApiKey, setShowApiKey] = useState(false)
-  const [localApiKey, setLocalApiKey] = useState(apiKey)
-
-  const handleSaveApiKey = () => {
-    onApiKeyChange(localApiKey)
-  }
+  const [showManageModal, setShowManageModal] = useState(false)
 
   return (
     <div className={styles.modelCard}>
-      <div className={styles.cardHeader}>
+      <div className={styles.cardRow}>
+        {/* Model Info - Left */}
         <div className={styles.modelInfo}>
-          <div className={styles.modelIcon}>
-            {model === 'gemini' ? '🤖' : '💬'}
+          <div className={`${styles.modelIcon} ${model === 'chatgpt' ? styles.chatgptIcon : ''}`}>
+            <img 
+              src={model === 'gemini' ? geminiLogo : chatgptLogo} 
+              alt={name}
+              className={styles.modelIconImage}
+            />
           </div>
           <div className={styles.modelDetails}>
-            <h3 className={styles.modelName}>{name}</h3>
-            <p className={styles.modelDescription}>{description}</p>
+            <div className={styles.modelNameRow}>
+              <h3 className={styles.modelName}>{name}</h3>
+              {isConnected && (
+                <span className={styles.modelVersion}>
+                  {model === 'gemini' ? 'Gemini Flash' : 'GPT-3.5 Turbo'}
+                </span>
+              )}
+              {isConnected ? (
+                <span className={styles.connectedBadge}>
+                  <IconCheckCircle className={styles.statusIcon} />
+                  Connected
+                </span>
+              ) : (
+                <span className={styles.disconnectedBadge}>
+                  <IconXCircle className={styles.statusIcon} />
+                  Not Connected
+                </span>
+              )}
+            </div>
           </div>
         </div>
-        <div className={styles.cardActions}>
+
+        {/* API Key Section - Middle */}
+        <div className={styles.apiKeySection}>
+          {isConnected && (
+            <span className={styles.connectedText}>API Key configured</span>
+          )}
+        </div>
+
+        {/* Actions - Right */}
+        <div className={styles.actionsSection}>
+          <button
+            className={styles.manageApiButton}
+            onClick={() => setShowManageModal(true)}
+          >
+            <IconKey />
+            <span>Manage API</span>
+          </button>
           <label className={styles.toggleSwitch}>
             <input
               type="checkbox"
@@ -59,66 +95,18 @@ export function AIModelCard({
         </div>
       </div>
 
-      <div className={styles.apiKeySection}>
-        <div className={styles.apiKeyInputWrapper}>
-          <label className={styles.apiKeyLabel}>API Key</label>
-          <div className={styles.passwordInputWrapper}>
-            <input
-              type={showApiKey ? 'text' : 'password'}
-              value={localApiKey}
-              onChange={(e) => setLocalApiKey(e.target.value)}
-              placeholder="Enter your API key..."
-              className={styles.apiKeyInput}
-            />
-            <button
-              className={styles.passwordToggle}
-              onClick={() => setShowApiKey(!showApiKey)}
-              type="button"
-            >
-              {showApiKey ? <IconEyeOff /> : <IconEye />}
-            </button>
-          </div>
-        </div>
-
-        <div className={styles.connectionSection}>
-          <div className={styles.connectionStatus}>
-            {isConnected ? (
-              <>
-                <IconCheckCircle className={styles.connectedIcon} />
-                <span className={styles.connectedText}>Connected</span>
-              </>
-            ) : (
-              <>
-                <IconXCircle className={styles.disconnectedIcon} />
-                <span className={styles.disconnectedText}>Not Connected</span>
-              </>
-            )}
-          </div>
-          <div className={styles.connectionActions}>
-            <button
-              className={styles.saveButton}
-              onClick={handleSaveApiKey}
-              disabled={localApiKey === apiKey}
-            >
-              Save API Key
-            </button>
-            <button
-              className={styles.connectButton}
-              onClick={onConnect}
-              disabled={testing || !localApiKey.trim()}
-            >
-              {testing ? (
-                <>
-                  <IconRefreshCw className={styles.spinning} />
-                  <span>Testing...</span>
-                </>
-              ) : (
-                <span>Connect</span>
-              )}
-            </button>
-          </div>
-        </div>
-      </div>
+      {/* Manage API Modal */}
+      {showManageModal && agentId && (
+        <ManageAPIModal
+          isOpen={showManageModal}
+          onClose={() => setShowManageModal(false)}
+          agentId={agentId}
+          agentName={name}
+          currentApiKey={apiKey}
+          onApiKeyUpdate={onApiKeyChange}
+          onConnectionSuccess={onConnectionSuccess}
+        />
+      )}
     </div>
   )
 }

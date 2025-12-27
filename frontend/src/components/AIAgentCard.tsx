@@ -1,4 +1,5 @@
-import { IconEdit, IconTrash, IconPlay, IconEye, IconDatabase } from '@/components/Icons'
+import { IconEdit, IconTrash, IconPlay, IconEye, IconDatabase, IconMoreVertical } from '@/components/Icons'
+import { useState, useRef, useEffect } from 'react'
 import styles from './AIAgentCard.module.css'
 
 interface Agent {
@@ -21,6 +22,8 @@ interface AIAgentCardProps {
   onToggle: (agent: Agent) => void
   onViewMemory: (agent: Agent) => void
   onTestConnection?: (id: string) => void
+  onViewDetail?: (agent: Agent) => void
+  onRename?: (agent: Agent) => void
 }
 
 export function AIAgentCard({
@@ -30,22 +33,44 @@ export function AIAgentCard({
   onToggle,
   onViewMemory,
   onTestConnection,
+  onViewDetail,
+  onRename,
 }: AIAgentCardProps) {
-  const formatBytes = (bytes: number): string => {
-    if (bytes === 0) return '0 Bytes'
-    const k = 1024
-    const sizes = ['Bytes', 'KB', 'MB', 'GB']
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i]
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false)
+      }
+    }
+
+    if (menuOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [menuOpen])
+
+  const handleMenuClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setMenuOpen(!menuOpen)
   }
 
-  const formatTokens = (tokens: number): string => {
-    if (tokens < 1000) return `${tokens} tokens`
-    return `${(tokens / 1000).toFixed(1)}k tokens`
+  const getModelDisplay = (model: string): string => {
+    if (model.toLowerCase().includes('gemini')) {
+      const match = model.match(/(\d+)/)
+      return match ? `Gemini ${match[1]}` : 'Gemini'
+    }
+    if (model.toLowerCase().includes('gpt')) {
+      const match = model.match(/(\d+)/)
+      return match ? `GPT-${match[1]}` : 'GPT'
+    }
+    return model
   }
 
   return (
-    <div className={styles.agentCard}>
+    <div className={styles.agentCard} onClick={() => onViewDetail?.(agent)}>
       <div className={styles.cardHeader}>
         <div className={styles.agentInfo}>
           {agent.avatar_url ? (
@@ -56,70 +81,56 @@ export function AIAgentCard({
           <div className={styles.agentDetails}>
             <h3 className={styles.agentName}>{agent.name}</h3>
             <div className={styles.agentMeta}>
-              <span className={styles.modelBadge}>{agent.model}</span>
-              {agent.is_default && <span className={styles.defaultBadge}>Default</span>}
+              <span className={styles.modelBadge}>{getModelDisplay(agent.model)}</span>
+              <span className={`${styles.statusBadge} ${agent.is_active ? styles.active : styles.inactive}`}>
+                {agent.is_active ? 'Active' : 'Inactive'}
+              </span>
             </div>
           </div>
         </div>
         <div className={styles.cardActions}>
-          <label className={styles.toggleSwitch}>
-            <input
-              type="checkbox"
-              checked={agent.is_active}
-              onChange={() => onToggle(agent)}
-            />
-            <span className={styles.toggleSlider}></span>
-          </label>
+          <button
+            className={styles.menuButton}
+            onClick={handleMenuClick}
+            aria-label="More options"
+          >
+            <IconMoreVertical />
+          </button>
+          {menuOpen && (
+            <div ref={menuRef} className={styles.menu}>
+              {onViewDetail && (
+                <button className={styles.menuItem} onClick={(e) => { e.stopPropagation(); onViewDetail(agent); setMenuOpen(false); }}>
+                  <IconEye />
+                  <span>View detail</span>
+                </button>
+              )}
+              {onRename && (
+                <button className={styles.menuItem} onClick={(e) => { e.stopPropagation(); onRename(agent); setMenuOpen(false); }}>
+                  <IconEdit />
+                  <span>Rename</span>
+                </button>
+              )}
+              <button className={styles.menuItem} onClick={(e) => { e.stopPropagation(); onToggle(agent); setMenuOpen(false); }}>
+                <span>{agent.is_active ? 'Deactivate' : 'Activate'}</span>
+              </button>
+              {!agent.is_default && (
+                <button className={`${styles.menuItem} ${styles.deleteItem}`} onClick={(e) => { e.stopPropagation(); onDelete(agent.id); setMenuOpen(false); }}>
+                  <IconTrash />
+                  <span>Delete</span>
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
       {agent.description && (
-        <p className={styles.description}>{agent.description}</p>
+        <p className={styles.description} title={agent.description}>
+          {agent.description.length > 100 
+            ? agent.description.slice(0, 100) + '...' 
+            : agent.description}
+        </p>
       )}
-
-      <div className={styles.cardFooter}>
-        <div className={styles.memoryInfo}>
-          <IconDatabase className={styles.memoryIcon} />
-          <div className={styles.memoryDetails}>
-            <span className={styles.memorySize}>{formatBytes(agent.memory_size_bytes)}</span>
-            <span className={styles.memoryTokens}>{formatTokens(agent.memory_token_estimate)}</span>
-          </div>
-        </div>
-        <div className={styles.actionButtons}>
-          <button
-            className={styles.actionButton}
-            onClick={() => onViewMemory(agent)}
-            title="View Memory"
-          >
-            <IconEye />
-          </button>
-          {onTestConnection && (
-            <button
-              className={styles.actionButton}
-              onClick={() => onTestConnection(agent.id)}
-              title="Test Connection"
-            >
-              <IconPlay />
-            </button>
-          )}
-          <button
-            className={styles.actionButton}
-            onClick={() => onEdit(agent)}
-            title="Edit"
-          >
-            <IconEdit />
-          </button>
-          {!agent.is_default && (
-            <button
-              className={styles.actionButton}
-              onClick={() => onDelete(agent.id)}
-              title="Delete"
-            >
-              <IconTrash />
-            </button>
-          )}
-        </div>
-      </div>
     </div>
   )
 }

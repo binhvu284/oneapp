@@ -7,20 +7,19 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 16px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
   color: var(--text);
   font-size: 0.95rem;
   cursor: pointer;
   transition: all 0.2s ease;
-  min-width: 200px;
+  min-width: auto;
 }
 
 .selectorButton:hover:not(:disabled) {
-  border-color: var(--primary);
-  background: var(--panel-hover);
+  opacity: 0.8;
 }
 
 .selectorButton:disabled {
@@ -34,6 +33,19 @@
   height: 32px;
   border-radius: 50%;
   object-fit: cover;
+  flex-shrink: 0;
+}
+
+.avatar {
+  object-fit: contain;
+  padding: 4px;
+  background: rgba(37, 99, 235, 0.1);
+  border-radius: 8px;
+}
+
+.chatgptAvatar {
+  background: #3c3c3c;
+  border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .avatarPlaceholder {
@@ -53,11 +65,7 @@
 }
 
 .modelBadge {
-  padding: 2px 8px;
-  background: var(--background);
-  border-radius: 4px;
-  font-size: 0.75rem;
-  color: var(--text-secondary);
+  display: none;
 }
 
 .placeholder {
@@ -90,7 +98,8 @@
   position: absolute;
   top: calc(100% + 8px);
   left: 0;
-  right: 0;
+  min-width: 280px;
+  width: max-content;
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -106,11 +115,13 @@
   gap: 12px;
   width: 100%;
   padding: 12px 16px;
+  padding-right: 40px; /* Add padding on right to prevent check icon overlap */
   background: transparent;
   border: none;
   text-align: left;
   cursor: pointer;
   transition: all 0.2s ease;
+  position: relative;
 }
 
 .option:hover {
@@ -125,9 +136,20 @@
 .optionAvatarPlaceholder {
   width: 40px;
   height: 40px;
-  border-radius: 50%;
+  border-radius: 8px;
   object-fit: cover;
   flex-shrink: 0;
+}
+
+.optionAvatar {
+  object-fit: contain;
+  padding: 6px;
+  background: rgba(37, 99, 235, 0.1);
+}
+
+.chatgptOptionAvatar {
+  background: #3c3c3c;
+  border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .optionAvatarPlaceholder {
@@ -138,22 +160,30 @@
   color: white;
   font-weight: 600;
   font-size: 1rem;
+  border-radius: 50%;
 }
 
 .optionInfo {
   flex: 1;
   min-width: 0;
+  margin-right: auto; /* Push check icon to the right */
 }
 
 .optionName {
   font-weight: 500;
   color: var(--text);
   margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .optionModel {
   font-size: 0.85rem;
   color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .checkIcon {
@@ -161,5 +191,9 @@
   height: 18px;
   color: var(--primary);
   flex-shrink: 0;
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
 }
 

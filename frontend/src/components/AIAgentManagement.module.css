@@ -153,16 +153,16 @@
   line-height: 1.6;
 }
 
-.modelsGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-  gap: 24px;
+.modelsList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
-.agentsGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 20px;
+.agentsList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .addButton {

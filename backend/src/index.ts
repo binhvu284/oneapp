@@ -14,6 +14,7 @@ import { backupVersionsRoutes } from './routes/backup-versions'
 import { schemaRoutes } from './routes/schema'
 import { apiRoutes } from './routes/apis'
 import { aiAgentsRoutes } from './routes/ai-agents'
+import aiConversationsRoutes from './routes/ai-conversations'
 
 // Load environment variables
 const envResult = dotenv.config()
@@ -54,6 +55,7 @@ app.use('/api/backup-versions', backupVersionsRoutes)
 app.use('/api/schema', schemaRoutes)
 app.use('/api/apis', apiRoutes)
 app.use('/api/ai-agents', aiAgentsRoutes)
+app.use('/api/conversations', aiConversationsRoutes)
 
 // Error handling middleware (must be last)
 app.use(errorHandler)
