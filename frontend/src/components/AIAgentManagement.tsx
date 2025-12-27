@@ -36,12 +36,10 @@ export function AIAgentManagement() {
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null)
   const [viewingMemoryAgent, setViewingMemoryAgent] = useState<Agent | null>(null)
   const [viewingAgent, setViewingAgent] = useState<Agent | null>(null)
-  const [renamingAgent, setRenamingAgent] = useState<Agent | null>(null)
   
   // State for default models (Gemini, ChatGPT)
   const [geminiApiKey, setGeminiApiKey] = useState('')
   const [chatgptApiKey, setChatgptApiKey] = useState('')
-  const [testingModel, setTestingModel] = useState<'gemini' | 'chatgpt' | null>(null)
 
   useEffect(() => {
     fetchAgents()
@@ -153,10 +151,11 @@ export function AIAgentManagement() {
     setShowAgentModal(true)
   }
 
-  const handleEditAgent = (agent: Agent) => {
-    setEditingAgent(agent)
-    setShowAgentModal(true)
-  }
+  // Unused but kept for future use
+  // const handleEditAgent = (agent: Agent) => {
+  //   setEditingAgent(agent)
+  //   setShowAgentModal(true)
+  // }
 
   const handleDeleteAgent = async (id: string) => {
     if (!confirm('Are you sure you want to delete this agent?')) return
@@ -256,7 +255,8 @@ export function AIAgentManagement() {
     }
   }
 
-  const handleModelConnect = async (model: 'gemini' | 'chatgpt', apiKeyOverride?: string) => {
+  // Unused but kept for future use
+  /* const handleModelConnect = async (model: 'gemini' | 'chatgpt', apiKeyOverride?: string) => {
     setTestingModel(model)
     try {
       // Use provided API key or get from state
@@ -371,7 +371,7 @@ export function AIAgentManagement() {
     } finally {
       setTestingModel(null)
     }
-  }
+  } */
 
   const handleModelToggle = async (model: 'gemini' | 'chatgpt') => {
     try {
@@ -390,10 +390,11 @@ export function AIAgentManagement() {
     }
   }
 
-  const handleViewMemory = (agent: Agent) => {
-    setViewingMemoryAgent(agent)
-    setShowMemoryView(true)
-  }
+  // Unused but kept for future use
+  // const handleViewMemory = (agent: Agent) => {
+  //   setViewingMemoryAgent(agent)
+  //   setShowMemoryView(true)
+  // }
 
   const handleViewDetail = (agent: Agent) => {
     setViewingAgent(agent)
@@ -534,10 +535,8 @@ export function AIAgentManagement() {
                   <AIAgentCard
                     key={agent.id}
                     agent={agent}
-                    onEdit={handleEditAgent}
                     onDelete={handleDeleteAgent}
                     onToggle={handleToggleAgent}
-                    onViewMemory={handleViewMemory}
                     onViewDetail={handleViewDetail}
                     onRename={handleRename}
                   />

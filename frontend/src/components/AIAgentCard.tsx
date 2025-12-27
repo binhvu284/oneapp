@@ -1,4 +1,4 @@
-import { IconEdit, IconTrash, IconPlay, IconEye, IconDatabase, IconMoreVertical } from '@/components/Icons'
+import { IconEdit, IconTrash, IconEye, IconMoreVertical } from '@/components/Icons'
 import { useState, useRef, useEffect } from 'react'
 import styles from './AIAgentCard.module.css'
 
@@ -17,22 +17,16 @@ interface Agent {
 
 interface AIAgentCardProps {
   agent: Agent
-  onEdit: (agent: Agent) => void
   onDelete: (id: string) => void
   onToggle: (agent: Agent) => void
-  onViewMemory: (agent: Agent) => void
-  onTestConnection?: (id: string) => void
   onViewDetail?: (agent: Agent) => void
   onRename?: (agent: Agent) => void
 }
 
 export function AIAgentCard({
   agent,
-  onEdit,
   onDelete,
   onToggle,
-  onViewMemory,
-  onTestConnection,
   onViewDetail,
   onRename,
 }: AIAgentCardProps) {

@@ -21,7 +21,6 @@ interface AIModelCardProps {
 export function AIModelCard({
   model,
   name,
-  description,
   apiKey = '',
   isConnected,
   isActive,

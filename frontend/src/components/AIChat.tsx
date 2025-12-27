@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { AgentSelector } from './AgentSelector'
 import { StreamingText } from './StreamingText'
 import { MarkdownRenderer } from './MarkdownRenderer'
-import { IconSend, IconRefreshCw, IconMenu, IconSearch, IconPlus, IconFile, IconTools, IconX, IconEdit, IconTrash, IconMessage, IconMoreVertical, IconImage, IconBrain, IconCopy, IconSparkles } from '@/components/Icons'
+import { IconSend, IconRefreshCw, IconMenu, IconSearch, IconPlus, IconFile, IconX, IconEdit, IconTrash, IconMessage, IconMoreVertical, IconImage, IconBrain, IconCopy, IconSparkles } from '@/components/Icons'
 import { useAuth } from '@/contexts/AuthContext'
 import { conversationsService, type Conversation as DBConversation, type Message as DBMessage } from '@/services/conversations'
 import api from '@/services/api'
@@ -63,7 +63,6 @@ export function AIChat({ selectedAgentId, onAgentSelect }: AIChatProps) {
   const titleInputRef = useRef<HTMLInputElement>(null)
   const conversationMenuRef = useRef<{ [key: string]: HTMLDivElement | null }>({})
   const conversationInputRef = useRef<HTMLInputElement>(null)
-  const conversationMenuButtonRef = useRef<{ [key: string]: HTMLButtonElement | null }>({})
   const actionsMenuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -267,7 +266,9 @@ export function AIChat({ selectedAgentId, onAgentSelect }: AIChatProps) {
     const conversation = conversations.find((c) => c.id === id)
     if (conversation) {
       setConversationTitle(conversation.title)
-      onAgentSelect(conversation.agent_id)
+      if (conversation.agent_id) {
+        onAgentSelect(conversation.agent_id)
+      }
       
       // Load messages for this conversation
       try {
