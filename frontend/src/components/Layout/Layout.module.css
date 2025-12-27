@@ -89,7 +89,7 @@
 .content {
   padding: 24px;
   background: var(--bg);
-  overflow-x: visible;
+  overflow-x: hidden;
   overflow-y: auto;
   min-height: 400px;
   position: relative;

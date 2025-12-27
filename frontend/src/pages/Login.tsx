@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useAuth } from '@/contexts/AuthContext'
 import { IconEye, IconEyeOff, IconArrowLeft, IconMail, IconLock } from '@/components/Icons'
+import { ToastContainer, type Toast } from '@/components/Toast'
 import oneAppLogo from '@/logo/icon.png'
 import styles from './Login.module.css'
 
@@ -14,15 +15,23 @@ export function Login() {
   const [rememberMe, setRememberMe] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [toasts, setToasts] = useState<Toast[]>([])
+
+  const addToast = (message: string, type: Toast['type'] = 'error') => {
+    const id = Date.now().toString()
+    setToasts((prev) => [...prev, { id, message, type }])
+  }
+
+  const removeToast = (id: string) => {
+    setToasts((prev) => prev.filter((toast) => toast.id !== id))
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError('')
     setLoading(true)
 
     try {
-      await signIn(email, password)
+      await signIn(email, password, rememberMe)
       if (rememberMe) {
         localStorage.setItem('rememberEmail', email)
       } else {
@@ -30,7 +39,7 @@ export function Login() {
       }
       navigate('/')
     } catch (err: any) {
-      setError(err.message || 'Invalid email or password')
+      addToast(err.message || 'Invalid email or password', 'error')
     } finally {
       setLoading(false)
     }
@@ -93,16 +102,6 @@ export function Login() {
           </div>
 
           <form onSubmit={handleSubmit} className={styles.form}>
-            {error && (
-              <motion.div
-                className={styles.error}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-              >
-                {error}
-              </motion.div>
-            )}
-
             <div className={styles.inputGroup}>
               <label className={styles.label}>
                 <IconMail className={styles.labelIcon} />
@@ -172,6 +171,7 @@ export function Login() {
           </form>
         </motion.div>
       </motion.div>
+      <ToastContainer toasts={toasts} onClose={removeToast} />
     </div>
   )
 }
