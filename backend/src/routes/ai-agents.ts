@@ -325,7 +325,7 @@ router.put('/:id/api-key', async (req: Request, res: Response) => {
       .from('ai_agents')
       .update({
         api_key: api_key || null,
-        is_active: !!api_key, // Auto-activate if API key is provided
+        is_active: false, // Don't auto-activate, require connection test
       })
       .eq('id', id)
       .select()

@@ -273,6 +273,12 @@
   white-space: nowrap;
 }
 
+.noApiKey {
+  color: var(--text-secondary);
+  font-style: italic;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
 .toggleButton {
   display: flex;
   align-items: center;

@@ -363,15 +363,8 @@ export function AIChat({ selectedAgentId, onAgentSelect }: AIChatProps) {
   }
 
   const handleDeleteConversation = async (conversationId: string) => {
-    // Confirm deletion
     const conversation = conversations.find((c) => c.id === conversationId)
     if (!conversation) return
-    
-    const confirmed = window.confirm(`Are you sure you want to delete "${conversation.title}"?`)
-    if (!confirmed) {
-      setConversationMenuOpen(null)
-      return
-    }
     
     setDeletingConversationId(conversationId)
     setConversationMenuOpen(null)

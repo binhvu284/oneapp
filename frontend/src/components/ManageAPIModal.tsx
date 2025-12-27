@@ -16,7 +16,7 @@ interface ManageAPIModalProps {
   agentId: string
   agentName: string
   currentApiKey: string
-  onApiKeyUpdate?: (newApiKey: string) => void
+  onApiKeyUpdate?: (newApiKey: string) => Promise<void>
   onConnectionSuccess?: () => void
 }
 
@@ -33,10 +33,18 @@ export function ManageAPIModal({ isOpen, onClose, agentId, agentName, currentApi
   useEffect(() => {
     if (isOpen && agentId) {
       loadConnectionLogs()
-      setEditedApiKey(currentApiKey)
+      setEditedApiKey(currentApiKey || '')
       setIsEditing(false)
+      setShowApiKey(false)
     }
-  }, [isOpen, agentId, currentApiKey])
+  }, [isOpen, agentId])
+
+  // Update edited API key when current API key changes
+  useEffect(() => {
+    if (!isEditing) {
+      setEditedApiKey(currentApiKey || '')
+    }
+  }, [currentApiKey, isEditing])
 
   const loadConnectionLogs = async () => {
     setLoading(true)
@@ -67,20 +75,18 @@ export function ManageAPIModal({ isOpen, onClose, agentId, agentName, currentApi
 
     setSaving(true)
     try {
-      await api.put(`/ai-agents/${agentId}`, {
-        api_key: editedApiKey.trim()
-      })
-      
-      // Update parent component
+      // Call parent's onApiKeyUpdate which will save to database
       if (onApiKeyUpdate) {
-        onApiKeyUpdate(editedApiKey.trim())
+        await onApiKeyUpdate(editedApiKey.trim())
       }
       
       setIsEditing(false)
-      // Optionally test connection after saving
-      // await handleTestConnection()
+      
+      // Automatically test connection after saving
+      await handleTestConnection()
     } catch (error) {
       console.error('Error saving API key:', error)
+      alert('Failed to save API key. Please try again.')
     } finally {
       setSaving(false)
     }
@@ -184,9 +190,9 @@ export function ManageAPIModal({ isOpen, onClose, agentId, agentName, currentApi
                   <button
                     className={styles.saveButton}
                     onClick={handleSaveApiKey}
-                    disabled={saving || !editedApiKey.trim()}
+                    disabled={saving || testing || !editedApiKey.trim()}
                   >
-                    {saving ? 'Saving...' : 'Save'}
+                    {saving ? 'Saving & Testing...' : 'Save'}
                   </button>
                   <button
                     className={styles.cancelButton}
@@ -199,14 +205,20 @@ export function ManageAPIModal({ isOpen, onClose, agentId, agentName, currentApi
             ) : (
               <div className={styles.apiKeyRow}>
                 <div className={styles.apiKeyDisplay}>
-                  {showApiKey ? currentApiKey : '•'.repeat(40)}
+                  {currentApiKey && currentApiKey.trim() ? (
+                    showApiKey ? currentApiKey : '•'.repeat(Math.min(currentApiKey.length, 40))
+                  ) : (
+                    <span className={styles.noApiKey}>No API key configured</span>
+                  )}
                 </div>
-                <button
-                  className={styles.toggleButton}
-                  onClick={() => setShowApiKey(!showApiKey)}
-                >
-                  {showApiKey ? <IconEyeOff /> : <IconEye />}
-                </button>
+                {currentApiKey && currentApiKey.trim() && (
+                  <button
+                    className={styles.toggleButton}
+                    onClick={() => setShowApiKey(!showApiKey)}
+                  >
+                    {showApiKey ? <IconEyeOff /> : <IconEye />}
+                  </button>
+                )}
               </div>
             )}
           </div>

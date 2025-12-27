@@ -197,9 +197,6 @@ export function AIAgentManagement() {
 
 
   const handleModelApiKeyChange = async (model: 'gemini' | 'chatgpt', apiKey: string): Promise<void> => {
-    // #region debug log
-    fetch('http://127.0.0.1:7244/ingest/d9b8d4a1-e56f-447d-a381-d93a62672caf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AIAgentManagement.tsx:202',message:'handleModelApiKeyChange called',data:{model,apiKeyLength:apiKey.length,agentsCount:agents.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H1'})}).catch(()=>{});
-    // #endregion
     try {
       let modelAgent = agents.find(a => 
         a.is_default && (
@@ -208,15 +205,8 @@ export function AIAgentManagement() {
         )
       )
 
-      // #region debug log
-      fetch('http://127.0.0.1:7244/ingest/d9b8d4a1-e56f-447d-a381-d93a62672caf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AIAgentManagement.tsx:212',message:'Model agent lookup',data:{found:!!modelAgent,modelAgentId:modelAgent?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H1'})}).catch(()=>{});
-      // #endregion
-
       // If model agent doesn't exist, create it first
       if (!modelAgent) {
-        // #region debug log
-        fetch('http://127.0.0.1:7244/ingest/d9b8d4a1-e56f-447d-a381-d93a62672caf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AIAgentManagement.tsx:217',message:'Creating default model agent',data:{model},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H2'})}).catch(()=>{});
-        // #endregion
         try {
           const createData = {
             name: model === 'gemini' ? 'Gemini' : 'ChatGPT',
@@ -228,9 +218,6 @@ export function AIAgentManagement() {
           }
           
           const createResponse = await api.post('/ai-agents', createData)
-          // #region debug log
-          fetch('http://127.0.0.1:7244/ingest/d9b8d4a1-e56f-447d-a381-d93a62672caf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AIAgentManagement.tsx:230',message:'Default model agent created',data:{success:createResponse.data?.success,agentId:createResponse.data?.data?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H2'})}).catch(()=>{});
-          // #endregion
           
           if (createResponse.data.success) {
             modelAgent = createResponse.data.data
@@ -240,9 +227,6 @@ export function AIAgentManagement() {
             throw new Error('Failed to create default model agent')
           }
         } catch (createError: any) {
-          // #region debug log
-          fetch('http://127.0.0.1:7244/ingest/d9b8d4a1-e56f-447d-a381-d93a62672caf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AIAgentManagement.tsx:240',message:'Error creating default model agent',data:{error:createError?.message,status:createError?.response?.status},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H2'})}).catch(()=>{});
-          // #endregion
           throw new Error(`Failed to create ${model} agent: ${createError.response?.data?.error || createError.message}`)
         }
       }
@@ -251,17 +235,9 @@ export function AIAgentManagement() {
         throw new Error('Model agent not found or invalid')
       }
 
-      // #region debug log
-      fetch('http://127.0.0.1:7244/ingest/d9b8d4a1-e56f-447d-a381-d93a62672caf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AIAgentManagement.tsx:247',message:'Saving API key',data:{agentId:modelAgent.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H1'})}).catch(()=>{});
-      // #endregion
-
       const response = await api.put(`/ai-agents/${modelAgent.id}/api-key`, {
         api_key: apiKey.trim(),
       })
-      
-      // #region debug log
-      fetch('http://127.0.0.1:7244/ingest/d9b8d4a1-e56f-447d-a381-d93a62672caf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AIAgentManagement.tsx:252',message:'API key save response',data:{success:response.data?.success},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H1'})}).catch(()=>{});
-      // #endregion
       
       if (response.data.success) {
         if (model === 'gemini') {
@@ -275,9 +251,6 @@ export function AIAgentManagement() {
         throw new Error('Failed to save API key')
       }
     } catch (error: any) {
-      // #region debug log
-      fetch('http://127.0.0.1:7244/ingest/d9b8d4a1-e56f-447d-a381-d93a62672caf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AIAgentManagement.tsx:265',message:'handleModelApiKeyChange error',data:{error:error?.message,status:error?.response?.status},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H1'})}).catch(()=>{});
-      // #endregion
       console.error('Error saving API key:', error)
       throw error // Re-throw so caller can handle it
     }

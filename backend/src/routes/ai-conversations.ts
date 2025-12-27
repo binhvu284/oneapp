@@ -339,10 +339,24 @@ router.patch('/:id', async (req: Request, res: Response) => {
 router.delete('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params
+    const deletedAt = new Date().toISOString()
 
+    // Soft delete all messages in this conversation first
+    const { error: messagesError } = await supabase
+      .from('ai_messages')
+      .update({ deleted_at: deletedAt })
+      .eq('conversation_id', id)
+      .is('deleted_at', null)
+
+    if (messagesError) {
+      console.error('Error soft-deleting messages:', messagesError)
+      // Continue anyway - conversation delete is more important
+    }
+
+    // Soft delete the conversation
     const { data, error } = await supabase
       .from('ai_conversations')
-      .update({ deleted_at: new Date().toISOString() })
+      .update({ deleted_at: deletedAt })
       .eq('id', id)
       .select()
       .single()
