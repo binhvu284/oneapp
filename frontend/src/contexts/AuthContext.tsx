@@ -55,21 +55,12 @@ if (supabaseUrl && supabaseAnonKey) {
 
 // Helper function to fetch user name from oneapp_users table with timeout
 async function fetchUserName(userId: string): Promise<string | undefined> {
-  // #region agent log
-  fetch('http://127.0.0.1:7244/ingest/d9b8d4a1-e56f-447d-a381-d93a62672caf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:69',message:'fetchUserName called',data:{userId},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'B'})}).catch(()=>{});
-  // #endregion
   const supabaseClient = getSupabaseClient()
-  // #region agent log
-  fetch('http://127.0.0.1:7244/ingest/d9b8d4a1-e56f-447d-a381-d93a62672caf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:71',message:'getSupabaseClient result',data:{hasClient:!!supabaseClient},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'B'})}).catch(()=>{});
-  // #endregion
   if (!supabaseClient) {
     return undefined
   }
   
   try {
-    // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/d9b8d4a1-e56f-447d-a381-d93a62672caf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:74',message:'Starting database query with timeout',data:{userId},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
     // Add timeout to prevent hanging (5 seconds)
     const queryPromise = supabaseClient
       .from('oneapp_users')
@@ -84,17 +75,11 @@ async function fetchUserName(userId: string): Promise<string | undefined> {
     })
     
     const { data, error } = await Promise.race([queryPromise, timeoutPromise])
-    // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/d9b8d4a1-e56f-447d-a381-d93a62672caf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:80',message:'Database query completed',data:{hasData:!!data,hasError:!!error,error:error?.message},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
     if (error || !data) {
       return undefined
     }
     return data.name
   } catch (err: any) {
-    // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/d9b8d4a1-e56f-447d-a381-d93a62672caf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:83',message:'fetchUserName catch block',data:{error:err?.message},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
     return undefined
   }
 }
@@ -102,28 +87,16 @@ async function fetchUserName(userId: string): Promise<string | undefined> {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
-  // #region agent log
-  fetch('http://127.0.0.1:7244/ingest/d9b8d4a1-e56f-447d-a381-d93a62672caf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:57',message:'AuthProvider initialized',data:{initialLoading:true,supabaseExists:!!supabase},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-  // #endregion
 
   useEffect(() => {
-    // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/d9b8d4a1-e56f-447d-a381-d93a62672caf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:60',message:'useEffect started',data:{supabaseIsNull:!supabase},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
     // If Supabase is not configured, skip auth check
     if (!supabase) {
-      // #region agent log
-      fetch('http://127.0.0.1:7244/ingest/d9b8d4a1-e56f-447d-a381-d93a62672caf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:63',message:'Supabase is null, setting loading to false',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-      // #endregion
       console.warn('⚠️  Supabase not configured. Running in demo mode.')
       setLoading(false)
       return
     }
 
     // Check active session with timeout
-    // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/d9b8d4a1-e56f-447d-a381-d93a62672caf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:88',message:'Calling getSession',data:{supabaseExists:!!supabase},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
     const sessionPromise = supabase.auth.getSession()
     const sessionTimeoutPromise = new Promise<{ data: { session: null }; error: { message: string } }>((resolve) => {
       setTimeout(() => {
@@ -133,14 +106,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     Promise.race([sessionPromise, sessionTimeoutPromise]).then(async (result: any) => {
       const { data: { session } } = result
-      // #region agent log
-      fetch('http://127.0.0.1:7244/ingest/d9b8d4a1-e56f-447d-a381-d93a62672caf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:89',message:'getSession resolved',data:{hasSession:!!session,hasUser:!!session?.user},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'A'})}).catch(()=>{});
-      // #endregion
       // Set loading to false immediately, don't wait for userName fetch
       setLoading(false)
-      // #region agent log
-      fetch('http://127.0.0.1:7244/ingest/d9b8d4a1-e56f-447d-a381-d93a62672caf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:99',message:'Setting loading to false in getSession then',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'A'})}).catch(()=>{});
-      // #endregion
       
       if (session?.user) {
         // Set user immediately with available data
@@ -164,28 +131,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         setUser(null)
       }
-    }).catch((err: any) => {
-      // #region agent log
-      fetch('http://127.0.0.1:7244/ingest/d9b8d4a1-e56f-447d-a381-d93a62672caf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:100',message:'getSession catch block',data:{error:err?.message},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'D'})}).catch(()=>{});
-      // #endregion
+    }).catch(() => {
       setLoading(false)
     })
 
     // Listen for auth changes
-    // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/d9b8d4a1-e56f-447d-a381-d93a62672caf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:105',message:'Setting up onAuthStateChange subscription',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'C'})}).catch(()=>{});
-    // #endregion
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event: string, session: Session | null) => {
-      // #region agent log
-      fetch('http://127.0.0.1:7244/ingest/d9b8d4a1-e56f-447d-a381-d93a62672caf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:107',message:'onAuthStateChange fired',data:{event:_event,hasSession:!!session,hasUser:!!session?.user},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'C'})}).catch(()=>{});
-      // #endregion
       // Set loading to false immediately, don't wait for userName fetch
       setLoading(false)
-      // #region agent log
-      fetch('http://127.0.0.1:7244/ingest/d9b8d4a1-e56f-447d-a381-d93a62672caf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:118',message:'Setting loading to false in onAuthStateChange',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'C'})}).catch(()=>{});
-      // #endregion
       
       if (session?.user) {
         // Set user immediately with available data
@@ -215,19 +170,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const signIn = async (email: string, password: string, rememberMe: boolean = false) => {
-    // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/d9b8d4a1-e56f-447d-a381-d93a62672caf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:213',message:'signIn called',data:{email,hasSupabase:!!supabase},timestamp:Date.now(),sessionId:'debug-session',runId:'login-fix',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
     if (!supabase) {
       throw new Error('Supabase is not configured. Please set up your environment variables.')
     }
-    // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/d9b8d4a1-e56f-447d-a381-d93a62672caf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:217',message:'Calling signInWithPassword',data:{email},timestamp:Date.now(),sessionId:'debug-session',runId:'login-fix',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-    // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/d9b8d4a1-e56f-447d-a381-d93a62672caf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:218',message:'signInWithPassword completed',data:{hasError:!!error,hasUser:!!data?.user,error:error?.message},timestamp:Date.now(),sessionId:'debug-session',runId:'login-fix',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
     if (error) throw error
     
     // Set user immediately with available data, don't wait for database query
@@ -238,9 +184,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email: data.user.email,
         name: data.user.user_metadata?.full_name || data.user.user_metadata?.name
       })
-      // #region agent log
-      fetch('http://127.0.0.1:7244/ingest/d9b8d4a1-e56f-447d-a381-d93a62672caf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:222',message:'User set with metadata, fetching name from DB',data:{userId:data.user.id},timestamp:Date.now(),sessionId:'debug-session',runId:'login-fix',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
       
       // Fetch user name from oneapp_users table asynchronously without blocking
       const supabaseClient = getSupabaseClient()
@@ -265,9 +208,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } else {
       localStorage.removeItem('rememberEmail')
     }
-    // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/d9b8d4a1-e56f-447d-a381-d93a62672caf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:261',message:'signIn completed',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'login-fix',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
   }
 
   const signUp = async (email: string, password: string, name?: string, inviteCode?: string) => {
