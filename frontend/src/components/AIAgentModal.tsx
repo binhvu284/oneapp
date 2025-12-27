@@ -39,7 +39,6 @@ export function AIAgentModal({ agent, onClose, onSave }: AIAgentModalProps) {
     memory_enabled: true,
     api_key: '',
   })
-  const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string>('')
   const [knowledgeFiles, setKnowledgeFiles] = useState<any[]>([])
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
@@ -104,7 +103,6 @@ export function AIAgentModal({ agent, onClose, onSave }: AIAgentModalProps) {
         .getPublicUrl(filePath)
 
       setAvatarPreview(urlData.publicUrl)
-      setAvatarFile(file)
       showToast('Avatar uploaded successfully', 'success')
     } catch (error: any) {
       console.error('Error uploading avatar:', error)
@@ -242,7 +240,6 @@ export function AIAgentModal({ agent, onClose, onSave }: AIAgentModalProps) {
                       className={styles.removeAvatar}
                       onClick={() => {
                         setAvatarPreview('')
-                        setAvatarFile(null)
                       }}
                     >
                       <IconTrash />
@@ -262,6 +259,7 @@ export function AIAgentModal({ agent, onClose, onSave }: AIAgentModalProps) {
                   type="file"
                   accept="image/*"
                   style={{ display: 'none' }}
+                  disabled={uploadingAvatar}
                   onChange={(e) => {
                     const file = e.target.files?.[0]
                     if (file) handleAvatarUpload(file)
@@ -328,10 +326,12 @@ export function AIAgentModal({ agent, onClose, onSave }: AIAgentModalProps) {
             <div className={styles.formGroup}>
               <div
                 className={styles.fileUploadArea}
-                onClick={() => knowledgeInputRef.current?.click()}
+                onClick={() => !uploadingKnowledge && knowledgeInputRef.current?.click()}
                 onDragOver={(e) => {
                   e.preventDefault()
-                  e.currentTarget.classList.add(styles.dragOver)
+                  if (!uploadingKnowledge) {
+                    e.currentTarget.classList.add(styles.dragOver)
+                  }
                 }}
                 onDragLeave={(e) => {
                   e.currentTarget.classList.remove(styles.dragOver)
@@ -339,8 +339,10 @@ export function AIAgentModal({ agent, onClose, onSave }: AIAgentModalProps) {
                 onDrop={(e) => {
                   e.preventDefault()
                   e.currentTarget.classList.remove(styles.dragOver)
-                  const file = e.dataTransfer.files[0]
-                  if (file) handleKnowledgeUpload(file)
+                  if (!uploadingKnowledge) {
+                    const file = e.dataTransfer.files[0]
+                    if (file) handleKnowledgeUpload(file)
+                  }
                 }}
               >
                 <IconUpload />
@@ -351,6 +353,7 @@ export function AIAgentModal({ agent, onClose, onSave }: AIAgentModalProps) {
                 ref={knowledgeInputRef}
                 type="file"
                 style={{ display: 'none' }}
+                disabled={uploadingKnowledge}
                 onChange={(e) => {
                   const file = e.target.files?.[0]
                   if (file) handleKnowledgeUpload(file)
