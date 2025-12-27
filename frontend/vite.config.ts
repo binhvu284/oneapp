@@ -4,7 +4,11 @@ import path from 'path'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react({
+      jsxRuntime: 'automatic',
+    }),
+  ],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -15,15 +19,20 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          // Split node_modules into vendor chunks
+          // Don't split React - keep it in main bundle to ensure it loads first
+          // This prevents "createContext is undefined" errors
           if (id.includes('node_modules')) {
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
-              return 'react-vendor'
+            // Keep React and React-DOM in main bundle (don't split them)
+            if (id.includes('react') || id.includes('react-dom')) {
+              return undefined // Keep in main bundle
+            }
+            if (id.includes('react-router')) {
+              return 'react-router-vendor'
             }
             if (id.includes('axios') || id.includes('jszip')) {
               return 'utils-vendor'
             }
-            // Other node_modules go into vendor chunk (including Supabase if used)
+            // Other node_modules go into vendor chunk
             return 'vendor'
           }
         },
